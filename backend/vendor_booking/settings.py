@@ -135,6 +135,10 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 100
 }
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://howbazar-vendor-booking-production.up.railway.app"
+]
+
 # CORS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
