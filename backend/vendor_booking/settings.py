@@ -145,6 +145,7 @@ CORS_ALLOWED_ORIGINS = [
 
 CSRF_TRUSTED_ORIGINS = [
     "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
+    "https://how-bazar-vendor-booking.vercel.app",
     "https://*.railway.app",
     "https://howbazar-vendor-booking-production.up.railway.app",
 ]
