@@ -140,6 +140,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
+    "https://how-bazar-vendor-booking.vercel.app",
+
 
 ]
 
