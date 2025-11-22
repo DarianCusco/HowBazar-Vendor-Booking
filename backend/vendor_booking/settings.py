@@ -135,14 +135,16 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 100
 }
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://howbazar-vendor-booking-production.up.railway.app"
-]
-
 # CORS
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
+
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
