@@ -28,10 +28,13 @@ function CheckoutSuccessContent() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Payment Successful!
+            Payment Authorized!
           </h1>
           <p className="text-gray-600">
-            Your booth reservation has been confirmed.
+            Your payment has been authorized and is pending approval.
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            You will receive a confirmation email once your payment is approved.
           </p>
         </div>
 
@@ -45,8 +48,7 @@ function CheckoutSuccessContent() {
 
         <div className="space-y-4">
           <p className="text-gray-700">
-            You will receive a confirmation email shortly with all the details
-            about your booking.
+            Your payment is pending approval. Once approved, you will receive a confirmation email with all the details about your booking.
           </p>
           <button
             onClick={() => router.push('/')}

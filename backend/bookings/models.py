@@ -73,7 +73,8 @@ class VendorBooking(models.Model):
     business_name = models.CharField(max_length=200, blank=True)
     phone = models.CharField(max_length=20)
     notes = models.TextField(blank=True)
-    stripe_payment_id = models.CharField(max_length=200, blank=True)
+    stripe_payment_id = models.CharField(max_length=200, blank=True, help_text="Stripe Checkout Session ID")
+    stripe_payment_intent_id = models.CharField(max_length=200, blank=True, help_text="Stripe Payment Intent ID")
     is_paid = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
 

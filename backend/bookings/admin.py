@@ -32,9 +32,19 @@ class BoothSlotAdmin(admin.ModelAdmin):
 
 @admin.register(VendorBooking)
 class VendorBookingAdmin(admin.ModelAdmin):
-    list_display = ['vendor_name', 'booth_slot', 'vendor_email', 'is_paid', 'timestamp']
+    list_display = ['vendor_name', 'booth_slot', 'vendor_email', 'payment_status', 'is_paid', 'timestamp']
     list_filter = ['is_paid', 'timestamp']
     search_fields = ['vendor_name', 'vendor_email', 'business_name']
     raw_id_fields = ['booth_slot']
-    readonly_fields = ['timestamp', 'stripe_payment_id']
+    readonly_fields = ['timestamp', 'stripe_payment_id', 'stripe_payment_intent_id']
+    
+    def payment_status(self, obj):
+        if obj.is_paid:
+            return "✅ Paid"
+        elif obj.stripe_payment_intent_id:
+            return "⏳ Pending Approval"
+        elif obj.stripe_payment_id:
+            return "🔵 Authorized"
+        return "❌ Not Started"
+    payment_status.short_description = 'Payment Status'
 

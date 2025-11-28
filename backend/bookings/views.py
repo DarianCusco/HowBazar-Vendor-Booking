@@ -149,7 +149,7 @@ def reserve_event_spot(request, event_id):
         is_paid=False
     )
 
-    # Create Stripe Checkout Session
+    # Create Stripe Checkout Session with manual capture
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -158,13 +158,16 @@ def reserve_event_spot(request, event_id):
                     'currency': 'usd',
                     'product_data': {
                         'name': f'{event.name} - Vendor Booth Spot',
-                        'description': f'Event: {event.name}\nDate: {event.date}\nLocation: {event.location}\nSpot will be assigned after payment.',
+                        'description': f'Event: {event.name}\nDate: {event.date}\nLocation: {event.location}\nPayment pending approval.',
                     },
                     'unit_amount': int(event.price * 100),  # Convert to cents
                 },
                 'quantity': 1,
             }],
             mode='payment',
+            payment_intent_data={
+                'capture_method': 'manual',  # Requires manual capture/approval
+            },
             success_url=request.build_absolute_uri('/checkout/success?session_id={CHECKOUT_SESSION_ID}'),
             cancel_url=request.build_absolute_uri('/checkout/cancel'),
             metadata={
@@ -209,28 +212,48 @@ def stripe_webhook(request):
     except stripe.error.SignatureVerificationError:
         return Response({'error': 'Invalid signature'}, status=400)
 
-    # Handle the checkout.session.completed event
+    # Handle the checkout.session.completed event (payment authorized but not captured yet)
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         booking_id = session['metadata'].get('booking_id')
         booth_slot_id = session['metadata'].get('booth_slot_id')
+        payment_intent_id = session.get('payment_intent')
 
         try:
             booking = VendorBooking.objects.get(id=booking_id)
-            booking.is_paid = True
             booking.stripe_payment_id = session['id']
+            if payment_intent_id:
+                booking.stripe_payment_intent_id = payment_intent_id
+            # Don't mark as paid yet - payment is only authorized, not captured
             booking.save()
 
-            # Mark booth slot as unavailable
-            booth_slot = BoothSlot.objects.get(id=booth_slot_id)
+            # Don't mark slot as unavailable yet - wait for payment capture
+
+        except VendorBooking.DoesNotExist as e:
+            return Response({'error': f'Booking not found: {str(e)}'}, status=400)
+
+    # Handle the payment_intent.succeeded event (payment captured/approved)
+    if event['type'] == 'payment_intent.succeeded':
+        payment_intent = event['data']['object']
+        payment_intent_id = payment_intent['id']
+
+        try:
+            # Find booking by payment intent ID
+            booking = VendorBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
+            booking.is_paid = True
+            booking.save()
+
+            # Now mark booth slot as unavailable
+            booth_slot = booking.booth_slot
             booth_slot.is_available = False
             booth_slot.save()
 
             # TODO: Send confirmation email to vendor
             # You can use Django's email functionality here
 
-        except (VendorBooking.DoesNotExist, BoothSlot.DoesNotExist) as e:
-            return Response({'error': f'Booking or slot not found: {str(e)}'}, status=400)
+        except VendorBooking.DoesNotExist:
+            # Payment intent not found in our system - might be from another source
+            pass
 
     return Response({'status': 'success'})
 
