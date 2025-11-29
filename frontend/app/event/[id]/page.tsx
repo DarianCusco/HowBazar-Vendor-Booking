@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getEvent, Event, reserveEventSpot, ReserveBoothSlotData } from '@/lib/api';
 
-// Theme configuration matching your calendar
 const THEME_CONFIG = {
   "THE FIRST TASTE": { 
     color: 'from-purple-500 to-pink-500', 
@@ -303,7 +302,7 @@ export default function EventPage() {
                           {availableSlots.length} spot{availableSlots.length !== 1 ? 's' : ''} available
                         </p>
                         <p className="text-gray-600 mt-1">
-                          Choose between regular vendor or food truck
+                          Choose between artisan vendor or food truck
                         </p>
                       </div>
                     </div>
@@ -311,7 +310,7 @@ export default function EventPage() {
                   <div className="text-center lg:text-right">
                     <div className="space-y-2">
                       <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                        $35 - Regular Vendor
+                        $35 - Artisan vendor
                       </p>
                       <p className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
                         $100 - Food Truck
@@ -351,7 +350,7 @@ export default function EventPage() {
                 >
                   <div className="text-center">
                     <div className="text-3xl mb-2">🛍️</div>
-                    <h3 className="text-xl font-bold text-blue-800 mb-1">Regular Vendor</h3>
+                    <h3 className="text-xl font-bold text-blue-800 mb-1">Artisan vendor</h3>
                     <p className="text-blue-600 text-sm mb-2">8x8 booth with shelving & table</p>
                     <div className="text-2xl font-bold text-blue-700">$35</div>
                     <p className="text-blue-500 text-xs mt-1">26 spots available per day</p>
@@ -405,7 +404,7 @@ export default function EventPage() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-gray-800">
-                        {selectedVendorType === 'regular' ? 'Regular Vendor' : 'Food Truck'} Application
+                        {selectedVendorType === 'regular' ? 'Artisan vendor' : 'Food Truck'} Application
                       </h2>
                       <p className="text-gray-600 text-sm">{formatDate(event.date)}</p>
                     </div>
@@ -440,7 +439,7 @@ export default function EventPage() {
 
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
-                      Preferred Name (optional)
+                      Preferred Name
                     </label>
                     <input
                       type="text"
@@ -455,7 +454,7 @@ export default function EventPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
-                      Pronouns (optional)
+                      Pronouns
                     </label>
                     <input
                       type="text"
@@ -635,7 +634,7 @@ export default function EventPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
-                      Social Media Highlight Consent
+                      Do you consent to being included in a social media highlight?
                     </label>
                     <select
                       value={formData.socialMediaConsent}

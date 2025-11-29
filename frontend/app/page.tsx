@@ -424,7 +424,7 @@ export default function Home() {
           <div className="mt-4 sm:mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 sm:p-4 border border-blue-200">
             <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-4 text-center">
               <div>
-                <div className="font-semibold text-gray-800 text-sm sm:text-base">Regular Vendor</div>
+                <div className="font-semibold text-gray-800 text-sm sm:text-base">Artisan vendor</div>
                 <div className="text-xl sm:text-2xl font-bold text-blue-600">$35</div>
                 <div className="text-xs text-gray-600">26 spots/day</div>
               </div>
