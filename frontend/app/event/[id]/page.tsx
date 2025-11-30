@@ -174,21 +174,22 @@ export default function EventPage() {
     }));
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+const getEventTime = (dateString: string) => {
+  const date = new Date(dateString + 'T00:00:00Z');
+  const dayOfWeek = date.getUTCDay();
+  return dayOfWeek === 0 ? '12:00 PM - 5:00 PM' : '4:00 PM - 10:00 PM';
+};
 
-  const getEventTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const dayOfWeek = date.getDay();
-    return dayOfWeek === 0 ? '12:00 PM - 5:00 PM' : '4:00 PM - 10:00 PM';
-  };
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString + 'T00:00:00Z');
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC'
+  });
+};
 
   const getEventTheme = (eventName: string) => {
     const theme = Object.keys(THEME_CONFIG).find(theme => 
@@ -221,13 +222,11 @@ export default function EventPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      {/* Animated Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-10 -left-10 w-20 h-20 bg-purple-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
         <div className="absolute top-1/4 -right-10 w-16 h-16 bg-pink-200 rounded-full blur-xl opacity-40"></div>
         <div className="absolute bottom-1/3 left-1/4 w-24 h-24 bg-blue-200 rounded-full blur-xl opacity-20"></div>
       </div>
-
       <div className="max-w-4xl mx-auto relative z-10">
         {/* Back Button */}
         <button
@@ -254,9 +253,9 @@ export default function EventPage() {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-left">
                   <div className="text-2xl font-bold drop-shadow-lg">{eventTime}</div>
-                  <div className="text-white/80 font-light">How BAZAR Market</div>
+                  <div className="text-white/80 font-light">Downtown Winter Market</div>
                 </div>
               </div>
             </div>
@@ -304,7 +303,7 @@ export default function EventPage() {
                           {availableSlots.length} spot{availableSlots.length !== 1 ? 's' : ''} available
                         </p>
                         <p className="text-gray-600 mt-1">
-                          Choose between artisan vendor or food truck
+                          Choose between Vendor or food truck
                         </p>
                       </div>
                     </div>
@@ -312,7 +311,7 @@ export default function EventPage() {
                   <div className="text-center lg:text-right">
                     <div className="space-y-2">
                       <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                        $35 - Artisan vendor
+                        $35 - Vendor
                       </p>
                       <p className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
                         $100 - Food Truck
@@ -352,7 +351,7 @@ export default function EventPage() {
                 >
                   <div className="text-center">
                     <div className="text-3xl mb-2">🛍️</div>
-                    <h3 className="text-xl font-bold text-blue-800 mb-1">Artisan vendor</h3>
+                    <h3 className="text-xl font-bold text-blue-800 mb-1">Vendor</h3>
                     <p className="text-blue-600 text-sm mb-2">8x8 booth with shelving & table</p>
                     <div className="text-2xl font-bold text-blue-700">$35</div>
                     <p className="text-blue-500 text-xs mt-1">26 spots available per day</p>
@@ -397,8 +396,7 @@ export default function EventPage() {
                     onClick={handleBackToVendorType}
                     className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors group"
                   >
-                    <span className="text-xl group-hover:-translate-x-1 transition-transform">←</span>
-                    <span className="font-medium">Back</span>
+                    <span className="text-xl group-hover:-translate-x-1 transition-transform font-bold">←</span>
                   </button>
                   <div className="flex items-center space-x-3">
                     <div className="text-3xl">
@@ -406,7 +404,7 @@ export default function EventPage() {
                     </div>
                     <div>
                       <h2 className="text-2xl font-bold text-gray-800">
-                        {selectedVendorType === 'regular' ? 'Artisan vendor' : 'Food Truck'} Application
+                        {selectedVendorType === 'regular' ? 'Vendor' : 'Food Truck'} Application
                       </h2>
                       <p className="text-gray-600 text-sm">{formatDate(event.date)}</p>
                     </div>
@@ -416,7 +414,7 @@ export default function EventPage() {
                   <p className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                     ${selectedVendorType === 'regular' ? '35' : '100'}
                   </p>
-                  <p className="text-sm text-gray-500">{availableSlots.length} left</p>
+                  <p className="text-sm font-bold text-gray-500">{availableSlots.length} left</p>
                 </div>
               </div>
             </div>
@@ -710,15 +708,15 @@ export default function EventPage() {
                     {selectedVendorType === 'regular' ? 'Electricity Policy' : 'Generator Policy'}
                   </h4>
                   <p className="text-yellow-700 text-sm mb-3">
-                    {selectedVendorType === 'regular' 
+                    {selectedVendorType === 'regular'
                       ? "We'll provide access to power, but you must bring your own reliable extension cords. We recommend 25 ft, 3-prong cords."
                       : "You must bring your own QUIET generator for electricity."
                     }
                   </p>
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-yellow-800">
-                      {selectedVendorType === 'regular' 
-                        ? "Can you bring your own cord(s)?" 
+                      {selectedVendorType === 'regular'
+                        ? "Can you bring your own cord(s)?"
                         : "Can you bring your own quiet generator(s)?"
                       }
                     </label>
