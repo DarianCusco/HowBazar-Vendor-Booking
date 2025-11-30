@@ -92,7 +92,7 @@ export default function Home() {
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date('2025-12-01')); // Start with December
   const [error, setError] = useState<string | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
@@ -104,7 +104,12 @@ export default function Home() {
     try {
       setLoading(true);
       const data = await getCalendarEvents();
-      setEvents(data);
+      // Filter out any events outside our market series dates
+      const filteredEvents = data.filter(event => {
+        const eventDate = new Date(event.date);
+        return eventDate >= new Date('2025-12-12') && eventDate <= new Date('2026-01-25');
+      });
+      setEvents(filteredEvents);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load events');
     } finally {
@@ -121,13 +126,11 @@ export default function Home() {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    
-    // Add empty cells for days before the first day of the month
+
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push(null);
     }
 
-    // Add all days of the month
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(new Date(year, month, i));
     }
@@ -161,11 +164,17 @@ export default function Home() {
       } else {
         newDate.setMonth(prev.getMonth() + 1);
       }
-      return newDate;
+      
+      const newYear = newDate.getFullYear();
+      const newMonth = newDate.getMonth();
+      
+      if (newYear === 2025 && newMonth === 11) return newDate; // December 2025
+      if (newYear === 2026 && newMonth === 0) return newDate;  // January 2026
+      
+      return prev;
     });
   };
 
-  // Touch handlers for swipe navigation
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.touches[0].clientX);
   };
@@ -176,13 +185,10 @@ export default function Home() {
     const touchEnd = e.changedTouches[0].clientX;
     const diff = touchStart - touchEnd;
 
-    // Minimum swipe distance
     if (Math.abs(diff) > 50) {
       if (diff > 0) {
-        // Swipe left - next month
         navigateMonth('next');
       } else {
-        // Swipe right - previous month
         navigateMonth('prev');
       }
     }
@@ -191,8 +197,8 @@ export default function Home() {
   };
 
   const handleDateClick = (date: Date | null, event: CalendarEvent | undefined) => {
-    // Only navigate if event exists and has available spots
-    if (date && event && event.available_slots > 0) {
+    const themeInfo = getThemeForDate(date);
+    if (date && themeInfo && event) {
       router.push(`/event/${event.id}`);
     }
   };
@@ -224,29 +230,39 @@ export default function Home() {
   const currentMonthName = monthNames[currentMonth.getMonth()];
   const currentYear = currentMonth.getFullYear();
 
+  // Calculate available slots for market series dates
+  const getAvailableSlotsForDate = (date: Date | null) => {
+    if (!date) return 0;
+    const event = getEventForDate(date);
+    return event ? event.available_slots : 26;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 py-4 sm:py-6 shadow-lg relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
+      <div className="relative py-4 sm:py-6 shadow-lg overflow-hidden bg-gray-900">
+        <div className="absolute inset-0 overflow-hidden">
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat animate-pan"
+            style={{
+              backgroundImage: 'url(https://thehowbazar.com/cdn/shop/files/Screen_Shot_2024-06-24_at_2.00.43_PM.png?v=1719252060&width=3840)',
+            }}
+          >
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]"></div>
+          </div>
+        </div>
+        
         <div className="relative max-w-5xl mx-auto px-4 text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-white mb-2 animate-pulse">
-            How BAZAR
+          <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-2">
+            Downtown Winter Market Series
           </h1>
-          <p className="text-base sm:text-lg md:text-xl text-white/90 font-light">
-            Vendor Marketplace Events • Dec 2025 - Jan 2026
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 font-semibold">
+            Dec 12, 2025 - Jan 25, 2026
           </p>
-          <div className="mt-2 flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4">
+          <div className="glass-card inline-flex flex-col sm:flex-row gap-2 sm:gap-4 px-6 py-3 rounded-xl border border-white/20">
             <span className="text-white/80 font-bold text-xs sm:text-sm">🎪 Friday & Saturday: 4PM-10PM</span>
             <span className="text-white/80 font-bold text-xs sm:text-sm">🌞 Sunday: 12PM-5PM</span>
           </div>
         </div>
-        
-        {/* Floating icons - hidden on mobile for cleaner look */}
-        <div className="hidden sm:block absolute top-2 left-10 text-2xl opacity-20 animate-bounce">🎪</div>
-        <div className="hidden sm:block absolute top-4 right-20 text-xl opacity-30 animate-bounce delay-75">🚗</div>
-        <div className="hidden sm:block absolute bottom-2 left-20 text-xl opacity-25 animate-bounce delay-100">🎵</div>
-        <div className="hidden sm:block absolute bottom-4 right-10 text-2xl opacity-20 animate-bounce delay-150">⚔️</div>
       </div>
 
       {/* Main Content */}
@@ -255,11 +271,11 @@ export default function Home() {
           {/* Calendar Navigation */}
           <div className="mb-4 sm:mb-6">
             <div className="flex justify-between items-center mb-4">
-              {/* Mobile: Arrow buttons only */}
               <button
                 onClick={() => navigateMonth('prev')}
-                className="sm:px-4 sm:py-2 p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                className="sm:px-4 sm:py-2 p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Previous month"
+                disabled={currentMonth.getMonth() === 11 && currentMonth.getFullYear() === 2025}
               >
                 <span className="hidden sm:inline">← Previous</span>
                 <span className="sm:hidden text-lg">←</span>
@@ -271,8 +287,9 @@ export default function Home() {
               
               <button
                 onClick={() => navigateMonth('next')}
-                className="sm:px-4 sm:py-2 p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                className="sm:px-4 sm:py-2 p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Next month"
+                disabled={currentMonth.getMonth() === 0 && currentMonth.getFullYear() === 2026}
               >
                 <span className="hidden sm:inline">Next →</span>
                 <span className="sm:hidden text-lg">→</span>
@@ -308,8 +325,8 @@ export default function Home() {
               const themeConfig = themeInfo ? THEME_CONFIG[themeInfo.theme as keyof typeof THEME_CONFIG] : null;
               const isToday = date && date.toDateString() === new Date().toDateString();
               
-              const hasAvailableSpots = event && event.available_slots > 0;
-              const hasNoSpots = event && event.available_slots === 0;
+              const availableSlots = getAvailableSlotsForDate(date);
+              const hasAvailableSpots = availableSlots > 0;
               const isEventDay = themeInfo !== null;
 
               return (
@@ -324,7 +341,7 @@ export default function Home() {
                       ? hasAvailableSpots
                         ? `${themeConfig?.border} ${themeConfig?.bg} hover:shadow-lg cursor-pointer transform hover:scale-105`
                         : `${themeConfig?.border} ${themeConfig?.bg} opacity-60 cursor-not-allowed`
-                      : 'border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-default'
+                      : 'border-gray-200 bg-gray-50 cursor-default'
                     }
                     ${isToday ? 'ring-2 ring-blue-400 ring-offset-1 sm:ring-offset-2' : ''}
                     ${isEventDay && hasAvailableSpots ? 'shadow-md hover:shadow-lg' : 'shadow-sm'}
@@ -346,8 +363,8 @@ export default function Home() {
                         <div className="text-base sm:text-lg mb-0.5 sm:mb-1">{themeConfig.icon}</div>
                       )}
 
-                      {/* Availability - Simplified on mobile */}
-                      {event && (
+                      {/* Availability */}
+                      {isEventDay && (
                         <div className={`text-[10px] sm:text-xs font-bold text-center ${
                           hasAvailableSpots 
                             ? themeConfig 
@@ -357,8 +374,8 @@ export default function Home() {
                         }`}>
                           {hasAvailableSpots ? (
                             <>
-                              <span className="sm:hidden">{event.available_slots}</span>
-                              <span className="hidden sm:inline">{event.available_slots} spots</span>
+                              <span className="sm:hidden">{availableSlots}</span>
+                              <span className="hidden sm:inline">{availableSlots} spots</span>
                             </>
                           ) : (
                             <span className="text-[9px] sm:text-xs">SOLD OUT</span>
@@ -366,7 +383,6 @@ export default function Home() {
                         </div>
                       )}
 
-                      {/* Vendor Types - Show on hover for mobile, always visible on desktop */}
                       {isEventDay && (
                         <div className="hidden sm:flex mt-1 justify-center space-x-1">
                           <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">26 Vendors</span>
@@ -374,7 +390,6 @@ export default function Home() {
                         </div>
                       )}
                       
-                      {/* Mobile: Show vendor counts as small dots/indicators */}
                       {isEventDay && (
                         <div className="sm:hidden flex justify-center space-x-1 mt-0.5">
                           <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" title="26 Vendor spots"></div>
@@ -420,11 +435,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Quick Info */}
+          {/* Quick Info section bottom */}
           <div className="mt-4 sm:mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 sm:p-4 border border-blue-200">
             <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-4 text-center">
               <div>
-                <div className="font-semibold text-gray-800 text-sm sm:text-base">Artisan vendor</div>
+                <div className="font-semibold text-gray-800 text-sm sm:text-base">Vendor</div>
                 <div className="text-xl sm:text-2xl font-bold text-blue-600">$35</div>
                 <div className="text-xs text-gray-600">26 spots/day</div>
               </div>
@@ -441,7 +456,7 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Mobile Help Text */}
+          {/* Mobile only */}
           <div className="sm:hidden mt-4 text-center">
             <p className="text-xs text-gray-500">
               💡 Tap event dates to book • Colored dots show vendor types
@@ -449,6 +464,21 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+     <style jsx>{`
+        @keyframes pan {
+          0% {
+            background-position: 0% center;
+          }
+          100% {
+            background-position: 100% center;
+          }
+        }
+        .animate-pan {
+          animation: pan 60s linear infinite;
+          background-size: 200% auto;
+        }
+      `}</style>
     </div>
   );
 }
