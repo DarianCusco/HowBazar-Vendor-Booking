@@ -231,7 +231,6 @@ export default function EventPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
-              </div>
 
               <div className="flex gap-3 pt-4 px-6 pb-6 flex-shrink-0 border-t border-gray-200 bg-gray-50">
                 <button
@@ -258,6 +257,7 @@ export default function EventPage() {
                 >
                   {submitting ? 'Processing...' : 'Continue to Payment'}
                 </button>
+              </div>
               </div>
             </form>
           </div>
