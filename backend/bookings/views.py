@@ -150,6 +150,13 @@ def reserve_event_spot(request, event_id):
     )
 
     # Create Stripe Checkout Session with manual capture
+    if not settings.STRIPE_SECRET_KEY:
+        booking.delete()
+        return Response(
+            {'error': 'Stripe is not configured. Please set STRIPE_SECRET_KEY.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],

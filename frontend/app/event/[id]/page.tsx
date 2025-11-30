@@ -52,7 +52,9 @@ export default function EventPage() {
       // Redirect to Stripe Checkout
       window.location.href = result.checkout_url;
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to reserve spot');
+      console.error('Reservation error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to reserve spot';
+      alert(`Error: ${errorMessage}\n\nPlease check:\n1. Backend is running\n2. Stripe keys are configured\n3. Database migrations are applied`);
       setSubmitting(false);
     }
   };
