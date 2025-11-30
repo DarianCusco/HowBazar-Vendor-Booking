@@ -814,7 +814,6 @@ export default function EventPage() {
                   )}
                 </button>
               </div>
-              </div>
             </form>
           </div>
         </div>
