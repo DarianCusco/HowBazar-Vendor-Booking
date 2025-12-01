@@ -93,8 +93,8 @@ def reserve_booth_slot(request, pk):
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=request.build_absolute_uri('/checkout/success?session_id={CHECKOUT_SESSION_ID}'),
-            cancel_url=request.build_absolute_uri('/checkout/cancel'),
+            success_url=f"{settings.FRONTEND_BASE_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.FRONTEND_BASE_URL}/checkout/cancel",
             metadata={
                 'booking_id': str(booking.id),
                 'booth_slot_id': str(booth_slot.id),
@@ -175,8 +175,8 @@ def reserve_event_spot(request, event_id):
             payment_intent_data={
                 'capture_method': 'manual',  # Requires manual capture/approval
             },
-            success_url=request.build_absolute_uri('/checkout/success?session_id={CHECKOUT_SESSION_ID}'),
-            cancel_url=request.build_absolute_uri('/checkout/cancel'),
+            success_url=f"{settings.FRONTEND_BASE_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.FRONTEND_BASE_URL}/checkout/cancel",
             metadata={
                 'booking_id': str(booking.id),
                 'booth_slot_id': str(booth_slot.id),
