@@ -21,7 +21,15 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-dev-key-change-in-p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ['*']
+# Allow Railway and your domains
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'crossover.proxy.rlwy.net',
+    'howbazar-vendor-booking-production.up.railway.app',
+    '.railway.app',
+    '.vercel.app',
+]
 
 
 # Application definition
@@ -140,14 +148,16 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
     "https://how-bazar-vendor-booking.vercel.app",
+    "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "https://how-bazar-vendor-booking.vercel.app",
-    "https://*.railway.app",
+    "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
+    "https://crossover.proxy.rlwy.net",
     "https://howbazar-vendor-booking-production.up.railway.app",
 ]
 
@@ -163,9 +173,14 @@ FRONTEND_BASE_URL = os.getenv(
     "http://localhost:3000"  # fallback for local development
 )
 
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
-
-CSRF_COOKIE_SAMESITE = "None"
-SESSION_COOKIE_SAMESITE = "None"
-
+# Security settings for production
+if not DEBUG:
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SAMESITE = "None"
+    SESSION_COOKIE_SAMESITE = "None"
+else:
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SAMESITE = "Lax"
