@@ -366,7 +366,7 @@ const formatDate = (dateString: string) => {
                   <div className="text-center">
                     <div className="text-3xl mb-2">🍔</div>
                     <h3 className="text-xl font-bold text-orange-800 mb-1">Food Truck</h3>
-                    <p className="text-orange-600 text-sm mb-2">Food vendor with generator</p>
+                    <p className="text-orange-600 text-sm mb-2">Premium Food Truck Space</p>
                     <div className="text-2xl font-bold text-orange-700">$100</div>
                     <p className="text-orange-500 text-xs mt-1">2 spots available per day</p>
                   </div>
