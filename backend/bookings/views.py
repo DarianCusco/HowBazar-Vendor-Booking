@@ -51,7 +51,6 @@ def booth_slot_detail(request, pk):
     serializer = BoothSlotSerializer(booth_slot)
     return Response(serializer.data)
 
-
 @api_view(['POST'])
 def reserve_booth_slot(request, pk):
     """Reserve a booth slot and create Stripe checkout session"""
@@ -267,44 +266,289 @@ def stripe_webhook(request):
     # Handle the checkout.session.completed event (payment authorized but not captured yet)
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
-        booking_id = session['metadata'].get('booking_id')
-        booth_slot_id = session['metadata'].get('booth_slot_id')
+        booking_ids_str = session['metadata'].get('booking_ids')  # For multi-date
+        booking_id = session['metadata'].get('booking_id')  # For single date
         payment_intent_id = session.get('payment_intent')
+        session_id = session['id']
 
-        try:
-            booking = VendorBooking.objects.get(id=booking_id)
-            booking.stripe_payment_id = session['id']
-            if payment_intent_id:
-                booking.stripe_payment_intent_id = payment_intent_id
-            # Don't mark as paid yet - payment is only authorized, not captured
-            booking.save()
+        # Handle multi-date bookings
+        if booking_ids_str:
+            booking_ids = booking_ids_str.split(',')
+            bookings = VendorBooking.objects.filter(id__in=booking_ids)
+            
+            for booking in bookings:
+                booking.stripe_payment_id = session_id
+                if payment_intent_id:
+                    booking.stripe_payment_intent_id = payment_intent_id
+                booking.save()
+            
+            print(f"DEBUG: Updated {len(bookings)} bookings with session {session_id}")
+        
+        # Handle single date booking
+        elif booking_id:
+            try:
+                booking = VendorBooking.objects.get(id=booking_id)
+                booking.stripe_payment_id = session_id
+                if payment_intent_id:
+                    booking.stripe_payment_intent_id = payment_intent_id
+                booking.save()
 
-            # Don't mark slot as unavailable yet - wait for payment capture
-
-        except VendorBooking.DoesNotExist as e:
-            return Response({'error': f'Booking not found: {str(e)}'}, status=400)
+            except VendorBooking.DoesNotExist as e:
+                return Response({'error': f'Booking not found: {str(e)}'}, status=400)
 
     # Handle the payment_intent.succeeded event (payment captured/approved)
     if event['type'] == 'payment_intent.succeeded':
         payment_intent = event['data']['object']
         payment_intent_id = payment_intent['id']
-
+        
         try:
-            # Find booking by payment intent ID
-            booking = VendorBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
-            booking.is_paid = True
-            booking.save()
-
-            # Now mark booth slot as unavailable
-            booth_slot = booking.booth_slot
-            booth_slot.is_available = False
-            booth_slot.save()
-
-            # TODO: Send confirmation email to vendor
-            # You can use Django's email functionality here
-
+            # Find bookings by session ID (since multiple bookings share the same session)
+            # Multi-date bookings have session_id in metadata
+            session_id = payment_intent.get('metadata', {}).get('session_id')
+            
+            if session_id:
+                # Find all bookings with this session ID (for multi-date bookings)
+                bookings = VendorBooking.objects.filter(stripe_payment_id=session_id)
+                
+                if bookings.exists():
+                    for booking in bookings:
+                        booking.is_paid = True
+                        booking.stripe_payment_intent_id = payment_intent_id
+                        booking.save()
+                        
+                        # Mark booth slot as unavailable
+                        booth_slot = booking.booth_slot
+                        booth_slot.is_available = False
+                        booth_slot.save()
+                    
+                    print(f"DEBUG: Processed {len(bookings)} bookings for multi-date payment")
+                else:
+                    # Try single booking lookup as fallback
+                    booking = VendorBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
+                    booking.is_paid = True
+                    booking.save()
+                    
+                    booth_slot = booking.booth_slot
+                    booth_slot.is_available = False
+                    booth_slot.save()
+                    
+            else:
+                # Fallback: single booking by payment intent ID
+                booking = VendorBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
+                booking.is_paid = True
+                booking.save()
+                
+                booth_slot = booking.booth_slot
+                booth_slot.is_available = False
+                booth_slot.save()
+                
         except VendorBooking.DoesNotExist:
             # Payment intent not found in our system - might be from another source
+            print(f"DEBUG: Payment intent {payment_intent_id} not found in VendorBooking")
             pass
 
     return Response({'status': 'success'})
+
+
+@api_view(['POST'])
+def reserve_multi_event_spots(request):
+    """Reserve multiple dates at once"""
+    reservations = request.data.get('reservations', [])
+    
+    if not reservations:
+        return Response(
+            {'error': 'No reservations provided'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    bookings = []
+    total_price = 0
+    vendor_type = None
+    
+    # First pass: validate all dates and calculate total
+    for reservation in reservations:
+        date_str = reservation.get('eventDate')
+        if not date_str:
+            return Response(
+                {'error': 'Missing eventDate in reservation'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find event for this date
+        event = Event.objects.filter(date=date_str).first()
+        if not event:
+            return Response(
+                {'error': f'No event found for date {date_str}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find first available booth slot
+        booth_slot = BoothSlot.objects.filter(
+            event=event,
+            is_available=True
+        ).first()
+        
+        if not booth_slot:
+            return Response(
+                {'error': f'No available spots for date {date_str}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Parse reservation data
+        serializer = ReserveBoothSlotSerializer(data=reservation.get('reservationData', {}))
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Determine vendor type and price from notes (first reservation sets it)
+        try:
+            notes_data = json.loads(serializer.validated_data.get('notes', '{}'))
+            if vendor_type is None:
+                vendor_type = notes_data.get('vendorType')
+        except (json.JSONDecodeError, TypeError):
+            pass
+        
+        # Calculate price
+        price_per_day = 100.00 if vendor_type == 'food' else 35.00
+        total_price += price_per_day
+        
+        bookings.append({
+            'event': event,
+            'booth_slot': booth_slot,
+            'reservation_data': serializer.validated_data,
+            'price': price_per_day
+        })
+    
+    # Second pass: create all bookings
+    created_bookings = []
+    try:
+        for booking_info in bookings:
+            # Create booking (unpaid)
+            booking = VendorBooking.objects.create(
+                booth_slot=booking_info['booth_slot'],
+                vendor_name=booking_info['reservation_data']['vendor_name'],
+                vendor_email=booking_info['reservation_data']['vendor_email'],
+                business_name=booking_info['reservation_data'].get('business_name', ''),
+                phone=booking_info['reservation_data']['phone'],
+                notes=booking_info['reservation_data'].get('notes', ''),
+                is_paid=False
+            )
+            created_bookings.append(booking)
+    
+    except Exception as e:
+        # Clean up any created bookings if something goes wrong
+        for booking in created_bookings:
+            booking.delete()
+        return Response(
+            {'error': f'Failed to create bookings: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+    # Get frontend URL
+    origin = request.headers.get('Origin')
+    if origin and ('vercel.app' in origin or 'localhost' in origin or '127.0.0.1' in origin):
+        frontend_url = origin.rstrip('/')
+    else:
+        frontend_url = settings.FRONTEND_BASE_URL.rstrip('/')
+    
+    print(f"DEBUG: Multi-date booking - {len(bookings)} dates, total: ${total_price}")
+    
+    # Create Stripe Checkout Session
+    try:
+        vendor_type_label = 'Food Truck' if vendor_type == 'food' else 'Vendor'
+        
+        # Get dates for description
+        dates = [b['event'].date for b in bookings]
+        dates_str = ', '.join([str(d) for d in dates])
+        
+        line_items = [{
+            'price_data': {
+                'currency': 'usd',
+                'product_data': {
+                    'name': f'Multi-Day Market Package - {len(bookings)} Days',
+                    'description': f'{vendor_type_label} Package for {len(bookings)} dates\nDates: {dates_str}\nPayment pending approval.',
+                },
+                'unit_amount': int(total_price * 100),  # Total in cents
+            },
+            'quantity': 1,
+        }]
+        
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            payment_intent_data={
+                'capture_method': 'manual',  # Requires manual capture/approval
+            },
+            success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/checkout/cancel",
+            metadata={
+                'booking_ids': ','.join([str(b.id) for b in created_bookings]),
+                'num_dates': str(len(bookings)),
+                'vendor_type': vendor_type or 'regular',
+                'total_price': str(total_price),
+            },
+        )
+        
+        # Save Stripe session ID to all bookings
+        for booking in created_bookings:
+            booking.stripe_payment_id = checkout_session.id
+            booking.save()
+        
+        return Response({
+            'checkout_url': checkout_session.url,
+            'session_id': checkout_session.id,
+            'total_price': total_price,
+            'num_dates': len(bookings),
+        })
+        
+    except stripe.error.StripeError as e:
+        # Clean up bookings if Stripe fails
+        for booking in created_bookings:
+            booking.delete()
+        return Response(
+            {'error': f'Stripe error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+def booking_status(request, session_id):
+    """Get booking status by Stripe session ID"""
+    bookings = VendorBooking.objects.filter(stripe_payment_id=session_id)
+    
+    if not bookings.exists():
+        return Response(
+            {'error': 'No bookings found for this session'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Get common info from first booking
+    first_booking = bookings.first()
+    
+    # Try to parse notes to get selected dates
+    selected_dates = []
+    try:
+        notes_data = json.loads(first_booking.notes or '{}')
+        selected_dates = notes_data.get('selectedDates', [])
+    except (json.JSONDecodeError, TypeError):
+        pass
+    
+    # Calculate total from Stripe metadata if available
+    total_price = 0
+    try:
+        # You could fetch from Stripe API to get actual amount
+        session = stripe.checkout.Session.retrieve(session_id)
+        total_price = session.amount_total / 100  # Convert from cents
+    except stripe.error.StripeError:
+        # Fallback: calculate from number of bookings
+        total_price = bookings.count() * 35  # Assuming all are regular vendors
+    
+    return Response({
+        'status': 'success',
+        'num_dates': bookings.count(),
+        'total_price': total_price,
+        'vendor_name': first_booking.vendor_name,
+        'business_name': first_booking.business_name,
+        'selected_dates': selected_dates,
+        'bookings': VendorBookingSerializer(bookings, many=True).data,
+    })

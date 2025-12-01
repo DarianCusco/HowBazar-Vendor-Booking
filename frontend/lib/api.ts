@@ -19,6 +19,11 @@ export interface BoothSlot {
   is_available: boolean;
 }
 
+export interface MultiDateReservation {
+  eventDate: string;
+  reservationData: ReserveBoothSlotData;
+}
+
 export interface CalendarEvent {
   id: number;
   name: string;
@@ -32,6 +37,38 @@ export interface ReserveBoothSlotData {
   business_name?: string;
   phone: string;
   notes?: string;
+}
+
+export async function reserveMultiEventSpots(
+  reservations: MultiDateReservation[]
+): Promise<{ checkout_url: string; session_id: string }> {
+  const response = await fetch(`${API_BASE_URL}/events/multi/reserve/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ reservations }),
+  });
+
+  if (!response.ok) {
+    let errorMessage = 'Failed to reserve spots';
+    const contentType = response.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.detail || JSON.stringify(error);
+      } catch (e) {
+        errorMessage = `Server error (${response.status})`;
+      }
+    } else {
+      errorMessage = `Server error (${response.status}). Please check the backend logs.`;
+    }
+    
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
 }
 
 export async function getEvents(): Promise<Event[]> {
@@ -86,6 +123,16 @@ export async function reserveBoothSlot(
   return response.json();
 }
 
+export async function checkPaymentStatus(sessionId: string): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/bookings/status/${sessionId}/`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to check payment status');
+  }
+  
+  return response.json();
+}
+
 export async function reserveEventSpot(
   eventId: number,
   data: ReserveBoothSlotData
@@ -117,6 +164,8 @@ export async function reserveEventSpot(
     
     throw new Error(errorMessage);
   }
+
+
 
   return response.json();
 }
