@@ -78,6 +78,15 @@ def reserve_booth_slot(request, pk):
         is_paid=False
     )
 
+    # Get frontend URL from request origin or fallback to settings
+    origin = request.headers.get('Origin')
+    if origin and ('vercel.app' in origin or 'localhost' in origin or '127.0.0.1' in origin):
+        frontend_url = origin.rstrip('/')
+    else:
+        frontend_url = settings.FRONTEND_BASE_URL.rstrip('/')
+    
+    print(f"DEBUG: Using frontend URL for booth slot: {frontend_url}")
+
     # Create Stripe Checkout Session
     try:
         checkout_session = stripe.checkout.Session.create(
@@ -94,8 +103,8 @@ def reserve_booth_slot(request, pk):
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=f"{settings.FRONTEND_BASE_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{settings.FRONTEND_BASE_URL}/checkout/cancel",
+            success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/checkout/cancel",
             metadata={
                 'booking_id': str(booking.id),
                 'booth_slot_id': str(booth_slot.id),
@@ -182,6 +191,17 @@ def reserve_event_spot(request, event_id):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
     
+    # Get the frontend URL from request origin or fallback to settings
+    origin = request.headers.get('Origin')
+    if origin and ('vercel.app' in origin or 'localhost' in origin or '127.0.0.1' in origin):
+        # Use the origin from the request
+        frontend_url = origin.rstrip('/')  # Remove trailing slash if present
+    else:
+        # Fallback to settings
+        frontend_url = settings.FRONTEND_BASE_URL.rstrip('/')
+    
+    print(f"DEBUG: Using frontend URL for event booking: {frontend_url}")
+    
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -200,8 +220,8 @@ def reserve_event_spot(request, event_id):
             payment_intent_data={
                 'capture_method': 'manual',  # Requires manual capture/approval
             },
-            success_url=f"{settings.FRONTEND_BASE_URL}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{settings.FRONTEND_BASE_URL}/checkout/cancel",
+            success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{frontend_url}/checkout/cancel",
             metadata={
                 'booking_id': str(booking.id),
                 'booth_slot_id': str(booth_slot.id),
@@ -288,4 +308,3 @@ def stripe_webhook(request):
             pass
 
     return Response({'status': 'success'})
-
