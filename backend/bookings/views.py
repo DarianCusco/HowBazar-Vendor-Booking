@@ -6,6 +6,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import stripe
+import json
 from .models import Event, BoothSlot, VendorBooking
 from .serializers import (
     EventSerializer,
@@ -149,6 +150,30 @@ def reserve_event_spot(request, event_id):
         is_paid=False
     )
 
+    # Determine price based on vendor type (hardcoded prices)
+    # Parse vendor type from notes JSON
+    vendor_type = None
+    price_amount = 0  # Default price
+    
+    try:
+        if booking.notes:
+            notes_data = json.loads(booking.notes)
+            vendor_type = notes_data.get('vendorType')
+    except (json.JSONDecodeError, TypeError):
+        pass
+    
+    # Hardcoded prices: $35 for regular vendors, $100 for food vendors
+    if vendor_type == 'food':
+        price_amount = 100.00
+        vendor_type_label = 'Food Truck'
+    elif vendor_type == 'regular':
+        price_amount = 35.00
+        vendor_type_label = 'Vendor'
+    else:
+        # Default to regular vendor price if type not specified
+        price_amount = 35.00
+        vendor_type_label = 'Vendor'
+    
     # Create Stripe Checkout Session with manual capture
     if not settings.STRIPE_SECRET_KEY:
         booking.delete()
@@ -164,10 +189,10 @@ def reserve_event_spot(request, event_id):
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': f'{event.name} - Vendor Booth Spot',
-                        'description': f'Event: {event.name}\nDate: {event.date}\nLocation: {event.location}\nPayment pending approval.',
+                        'name': f'{event.name} - {vendor_type_label} Booth Spot',
+                        'description': f'Event: {event.name}\nDate: {event.date}\nLocation: {event.location}\nVendor Type: {vendor_type_label}\nPayment pending approval.',
                     },
-                    'unit_amount': int(event.price * 100),  # Convert to cents
+                    'unit_amount': int(price_amount * 100),  # Convert to cents - using hardcoded price
                 },
                 'quantity': 1,
             }],
