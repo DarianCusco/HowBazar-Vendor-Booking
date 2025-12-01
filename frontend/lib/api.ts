@@ -99,23 +99,8 @@ export async function reserveEventSpot(
   });
 
   if (!response.ok) {
-    // Try to parse as JSON, but handle HTML error pages
-    let errorMessage = 'Failed to reserve spot';
-    const contentType = response.headers.get('content-type');
-    
-    if (contentType && contentType.includes('application/json')) {
-      try {
-        const error = await response.json();
-        errorMessage = error.error || error.detail || JSON.stringify(error);
-      } catch (e) {
-        errorMessage = `Server error (${response.status})`;
-      }
-    } else {
-      // Server returned HTML (likely an error page)
-      errorMessage = `Server error (${response.status}). Please check the backend logs.`;
-    }
-    
-    throw new Error(errorMessage);
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to reserve spot');
   }
 
   return response.json();
