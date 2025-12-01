@@ -211,8 +211,6 @@ export default function MultiDateBookingPage() {
 
   const getThemeForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
-    
-    // Mock theme data - in production, this would come from your API
     const MARKET_SERIES = [
       { theme: "THE OPENING WEEKEND", dates: ['2025-12-12', '2025-12-13', '2025-12-14'] },
       { theme: "CARS", dates: ['2025-12-19', '2025-12-20', '2025-12-21'] },
@@ -231,7 +229,6 @@ export default function MultiDateBookingPage() {
     return null;
   };
 
-  // Group dates by theme
   const groupDatesByTheme = () => {
     const grouped: Record<string, DateInfo[]> = {};
     
@@ -299,15 +296,13 @@ export default function MultiDateBookingPage() {
           setupSize: formData.setupSize,
           additionalNotes: formData.additionalNotes,
           selectedDates: selectedDates.map(d => d.date),
-          multiBooking: true, // Flag to indicate multi-date booking
+          multiBooking: true,
         }),
       }
     }));
 
-    // Call multi-date reservation API
     const result = await reserveMultiEventSpots(reservations);
     
-    // Redirect to Stripe checkout
     window.location.href = result.checkout_url;
     
   } catch (err) {
@@ -418,46 +413,6 @@ export default function MultiDateBookingPage() {
         <div className="py-4 sm:py-8 px-4 sm:px-6 max-w-6xl mx-auto">
           {/* Hero Card */}
           <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden transform transition-all duration-300 hover:shadow-2xl mb-6 sm:mb-8">
-            {/* Theme Header */}
-            <div className={`bg-gradient-to-r ${primaryThemeConfig.color} p-6 sm:p-8 md:p-10 text-white relative overflow-hidden`}>
-              <div className="absolute inset-0 bg-black/10"></div>
-              <div className="relative z-10">
-                <div className="text-center mb-6 sm:mb-8">
-                  <div className="flex flex-col items-center mb-6 sm:mb-8">
-                    <div className="text-4xl sm:text-5xl md:text-6xl mb-4">{primaryThemeConfig.icon}</div>
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 drop-shadow-lg">
-                      Multi-Day Market Package
-                    </h1>
-                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-white/90">
-                      {selectedDates.length} Day{selectedDates.length > 1 ? 's' : ''} Selected
-                    </div>
-                  </div>
-                  
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 max-w-2xl mx-auto">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4">
-                      <div className="text-xs sm:text-sm text-white/80 font-medium mb-1">DATES</div>
-                      <div className="text-base sm:text-lg md:text-xl font-semibold">
-                        {selectedDates.length}
-                      </div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4">
-                      <div className="text-xs sm:text-sm text-white/80 font-medium mb-1">THEMES</div>
-                      <div className="text-base sm:text-lg md:text-xl font-semibold">
-                        {Object.keys(groupedDates).length}
-                      </div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4">
-                      <div className="text-xs sm:text-sm text-white/80 font-medium mb-1">WEEKS</div>
-                      <div className="text-base sm:text-lg md:text-xl font-semibold">
-                        {Math.ceil(selectedDates.length / 3)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Content Area */}
             <div className="p-6 sm:p-8 md:p-10">
               {/* Selected Dates Timeline */}
@@ -465,7 +420,6 @@ export default function MultiDateBookingPage() {
                 <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">
                   Selected Dates
                 </h2>
-                
                 {/* Mobile Timeline */}
                 <div className="sm:hidden">
                   <div className="relative">
@@ -510,7 +464,6 @@ export default function MultiDateBookingPage() {
                         <div key={index} className="relative flex-shrink-0">
                         {/* Timeline dot */}
                         <div className={`absolute top-1/2 left-1/2 w-4 h-4 ${primaryThemeConfig.text.replace('text-', 'bg-')} rounded-full transform -translate-x-1/2 -translate-y-1/2 z-10`}></div>
-                        
                         {/* Date card */}
                         <div className={`mt-8 ${dateInfo.themeConfig.light} border ${dateInfo.themeConfig.border} rounded-xl p-4 w-56 transform transition-all duration-300 hover:scale-105 hover:shadow-lg`}>
                             <div className="text-center">
@@ -538,41 +491,6 @@ export default function MultiDateBookingPage() {
                 </div>
                 </div>
               </div>
-
-              {/* Themes Summary */}
-              <div className="mb-8 sm:mb-10">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">
-                  Themes Included
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {Object.entries(groupedDates).map(([theme, dates]) => {
-                    const config = THEME_CONFIG[theme as keyof typeof THEME_CONFIG] || THEME_CONFIG["THE OPENING WEEKEND"];
-                    return (
-                      <div 
-                        key={theme}
-                        className={`${config.light} border ${config.border} rounded-xl p-4 transform transition-all duration-300 hover:scale-105 hover:shadow-lg`}
-                      >
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="text-2xl">{config.icon}</div>
-                          <div>
-                            <div className="font-bold text-gray-800 text-sm truncate">{theme}</div>
-                            <div className="text-xs text-gray-600">{dates.length} day{dates.length > 1 ? 's' : ''}</div>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          {dates.map((dateInfo, index) => (
-                            <div key={index} className="flex items-center justify-between text-xs">
-                              <span className="text-gray-700">{dateInfo.formattedDate}</span>
-                              <span className="text-gray-500">{dateInfo.time.split(' ')[0]}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* Pricing & Booking Section */}
               <div className={`${primaryThemeConfig.light} border ${primaryThemeConfig.border} rounded-2xl sm:rounded-3xl p-6 sm:p-8 transform transition-all duration-300`}>
                 <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
@@ -589,7 +507,6 @@ export default function MultiDateBookingPage() {
                         </p>
                       </div>
                     </div>
-                    
                     {/* Mobile Price Display */}
                     <div className="sm:hidden grid grid-cols-2 gap-4 mb-4">
                       <div className="text-center bg-blue-50 rounded-xl p-4 border border-blue-200">
@@ -638,6 +555,10 @@ export default function MultiDateBookingPage() {
                 <div className="mt-4 text-center">
                   <p className="text-xs sm:text-sm text-gray-500">
                     💡 One application covers all {selectedDates.length} selected dates
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-500 font-bold pt-4">
+                    Please note that due to limited space you may not be approved for all, one, or none of your selected dates.
+                    You will only be charged when and if your application is approved.
                   </p>
                 </div>
               </div>
@@ -813,7 +734,6 @@ export default function MultiDateBookingPage() {
                   </div>
                 </div>
 
-                {/* Common Fields - Same as single page */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
