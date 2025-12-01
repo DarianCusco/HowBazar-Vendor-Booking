@@ -92,7 +92,9 @@ export default function Home() {
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentMonth, setCurrentMonth] = useState(new Date('2025-12-01')); // Start with December
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    return new Date(2025, 11, 1);
+  });
   const [error, setError] = useState<string | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
@@ -159,6 +161,7 @@ export default function Home() {
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentMonth(prev => {
       const newDate = new Date(prev);
+      
       if (direction === 'prev') {
         newDate.setMonth(prev.getMonth() - 1);
       } else {
@@ -168,8 +171,13 @@ export default function Home() {
       const newYear = newDate.getFullYear();
       const newMonth = newDate.getMonth();
       
-      if (newYear === 2025 && newMonth === 11) return newDate; // December 2025
-      if (newYear === 2026 && newMonth === 0) return newDate;  // January 2026
+      // Only allow December 2025 and January 2026
+      const isDecember2025 = newYear === 2025 && newMonth === 11;
+      const isJanuary2026 = newYear === 2026 && newMonth === 0;
+      
+      if (isDecember2025 || isJanuary2026) {
+        return newDate;
+      }
       
       return prev;
     });
