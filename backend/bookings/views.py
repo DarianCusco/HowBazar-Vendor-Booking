@@ -279,7 +279,7 @@ def stripe_webhook(request):
     except stripe.error.SignatureVerificationError:
         return Response({'error': 'Invalid signature'}, status=400)
 
-    # Handle the checkout.session.completed event (payment authorized but not captured yet)
+    # Handle the checkout.session.completed event (payment made on Stripe)
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         booking_ids_str = session['metadata'].get('booking_ids')  # For multi-date
@@ -287,20 +287,36 @@ def stripe_webhook(request):
         payment_intent_id = session.get('payment_intent')
         session_id = session['id']
 
+        # Import here to avoid circular imports
+        from .google_apps_script import get_apps_script_sync
+
         # Handle multi-date bookings
         if booking_ids_str:
             booking_ids = booking_ids_str.split(',')
             # Query both models
             general_bookings = GeneralVendorBooking.objects.filter(id__in=booking_ids)
             food_bookings = FoodTruckBooking.objects.filter(id__in=booking_ids)
+            bookings = list(general_bookings) + list(food_bookings)
             
-            for booking in list(general_bookings) + list(food_bookings):
+            for booking in bookings:
                 booking.stripe_payment_id = session_id
                 update_fields = ['stripe_payment_id']
                 if payment_intent_id:
                     booking.stripe_payment_intent_id = payment_intent_id
                     update_fields.append('stripe_payment_intent_id')
                 booking.save(update_fields=update_fields)
+            
+            # Sync all bookings to Google Sheets (payment made, not yet captured)
+            apps_script_sync = get_apps_script_sync()
+            for booking in bookings:
+                try:
+                    result = apps_script_sync.sync_booking(booking)
+                    if result:
+                        print(f"DEBUG: Synced booking {booking.id} to Google Sheets after payment")
+                    else:
+                        print(f"DEBUG: Failed to sync booking {booking.id} to Google Sheets")
+                except Exception as e:
+                    print(f"DEBUG: Error syncing booking {booking.id} to Google Sheets: {str(e)}")
             
             print(f"DEBUG: Updated {len(bookings)} bookings with session {session_id}")
         
@@ -320,6 +336,17 @@ def stripe_webhook(request):
                 if payment_intent_id:
                     booking.stripe_payment_intent_id = payment_intent_id
                 booking.save(update_fields=['stripe_payment_id', 'stripe_payment_intent_id'])
+                
+                # Sync to Google Sheets (payment made, not yet captured)
+                apps_script_sync = get_apps_script_sync()
+                try:
+                    result = apps_script_sync.sync_booking(booking)
+                    if result:
+                        print(f"DEBUG: Synced booking {booking.id} to Google Sheets after payment")
+                    else:
+                        print(f"DEBUG: Failed to sync booking {booking.id} to Google Sheets")
+                except Exception as e:
+                    print(f"DEBUG: Error syncing booking {booking.id} to Google Sheets: {str(e)}")
 
     # Handle the payment_intent.succeeded event (payment captured/approved)
     if event['type'] == 'payment_intent.succeeded':
