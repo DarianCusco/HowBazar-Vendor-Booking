@@ -66,33 +66,77 @@ class BoothSlot(models.Model):
         return f"{self.event.name} - Spot {self.spot_number}"
 
 
-class VendorBooking(models.Model):
-    VENDOR_TYPE_CHOICES = [
-        ('regular', 'General Vendor'),
-        ('food', 'Food Truck Vendor'),
-    ]
-    
-    booth_slot = models.ForeignKey(BoothSlot, on_delete=models.CASCADE, related_name='bookings')
-    vendor_type = models.CharField(
-        max_length=20,
-        choices=VENDOR_TYPE_CHOICES,
-        default='regular',
-        help_text="Type of vendor: General Vendor or Food Truck Vendor"
-    )
-    first_name = models.CharField(max_length=100, default='')
-    last_name = models.CharField(max_length=100, default='')
+class BaseVendorBooking(models.Model):
+    """Abstract base model for common vendor booking fields"""
+    booth_slot = models.ForeignKey(BoothSlot, on_delete=models.CASCADE, related_name='%(class)s_bookings')
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
     vendor_email = models.EmailField(validators=[EmailValidator()])
     business_name = models.CharField(max_length=200, blank=True)
     phone = models.CharField(max_length=20)
-    notes = models.TextField(blank=True)
+    
+    # Personal information
+    preferred_name = models.CharField(max_length=100, blank=True)
+    pronouns = models.CharField(max_length=50, blank=True)
+    instagram = models.CharField(max_length=100, blank=True)
+    
+    # Consents and preferences
+    social_media_consent = models.CharField(max_length=10, blank=True, choices=[('yes', 'Yes'), ('no', 'No')])
+    photo_consent = models.CharField(max_length=10, blank=True, choices=[('yes', 'Yes'), ('no', 'No')])
+    noise_sensitive = models.CharField(max_length=10, blank=True, choices=[('yes', 'Yes'), ('no', 'No')])
+    
+    # Booth sharing
+    sharing_booth = models.CharField(max_length=10, blank=True, choices=[('yes', 'Yes'), ('no', 'No')])
+    booth_partner_instagram = models.CharField(max_length=100, blank=True)
+    
+    # Additional information
+    price_range = models.CharField(max_length=100, blank=True)
+    additional_notes = models.TextField(blank=True)
+    
+    # Payment fields
     stripe_payment_id = models.CharField(max_length=200, blank=True, help_text="Stripe Checkout Session ID")
     stripe_payment_intent_id = models.CharField(max_length=200, blank=True, help_text="Stripe Payment Intent ID")
     is_paid = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        abstract = True
         ordering = ['-timestamp']
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.booth_slot}"
+
+
+class GeneralVendorBooking(BaseVendorBooking):
+    """General vendor booking with vendor-specific fields"""
+    products_selling = models.TextField(help_text="What products/items will be sold")
+    electricity_cord = models.CharField(
+        max_length=10,
+        blank=True,
+        choices=[('yes', 'Yes'), ('no', 'No')],
+        help_text="Can bring own extension cord"
+    )
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'General Vendor Booking'
+        verbose_name_plural = 'General Vendor Bookings'
+
+
+class FoodTruckBooking(BaseVendorBooking):
+    """Food truck booking with food truck-specific fields"""
+    cuisine_type = models.CharField(max_length=100, help_text="Type of cuisine (e.g., Mexican, Italian, BBQ)")
+    food_items = models.TextField(help_text="What types of food will be sold")
+    setup_size = models.CharField(max_length=100, blank=True, help_text="Truck size or dimensions")
+    generator = models.CharField(
+        max_length=10,
+        blank=True,
+        choices=[('yes', 'Yes'), ('no', 'No')],
+        help_text="Can bring own quiet generator"
+    )
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Food Truck Booking'
+        verbose_name_plural = 'Food Truck Bookings'
 

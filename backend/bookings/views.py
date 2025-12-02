@@ -7,16 +7,60 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import stripe
 import json
-from .models import Event, BoothSlot, VendorBooking
+from .models import Event, BoothSlot, GeneralVendorBooking, FoodTruckBooking
 from .serializers import (
     EventSerializer,
     EventListSerializer,
     BoothSlotSerializer,
-    VendorBookingSerializer,
+    GeneralVendorBookingSerializer,
+    FoodTruckBookingSerializer,
     ReserveBoothSlotSerializer
 )
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+def create_booking_from_serializer(serializer, booth_slot):
+    """Helper function to create the appropriate booking model based on vendor_type"""
+    vendor_type = serializer.validated_data.get('vendor_type', 'regular')
+    data = serializer.validated_data
+    
+    common_fields = {
+        'booth_slot': booth_slot,
+        'first_name': data['first_name'],
+        'last_name': data['last_name'],
+        'vendor_email': data['vendor_email'],
+        'business_name': data.get('business_name', ''),
+        'phone': data['phone'],
+        'preferred_name': data.get('preferred_name', ''),
+        'pronouns': data.get('pronouns', ''),
+        'instagram': data.get('instagram', ''),
+        'social_media_consent': data.get('social_media_consent', ''),
+        'photo_consent': data.get('photo_consent', ''),
+        'noise_sensitive': data.get('noise_sensitive', ''),
+        'sharing_booth': data.get('sharing_booth', ''),
+        'booth_partner_instagram': data.get('booth_partner_instagram', ''),
+        'price_range': data.get('price_range', ''),
+        'additional_notes': data.get('additional_notes', ''),
+        'is_paid': False,
+    }
+    
+    if vendor_type == 'food':
+        # Create FoodTruckBooking
+        return FoodTruckBooking.objects.create(
+            **common_fields,
+            cuisine_type=data.get('cuisine_type', ''),
+            food_items=data.get('food_items', ''),
+            setup_size=data.get('setup_size', ''),
+            generator=data.get('generator', ''),
+        )
+    else:
+        # Create GeneralVendorBooking
+        return GeneralVendorBooking.objects.create(
+            **common_fields,
+            products_selling=data.get('products_selling', ''),
+            electricity_cord=data.get('electricity_cord', ''),
+        )
 
 
 class EventViewSet(viewsets.ReadOnlyModelViewSet):
@@ -66,18 +110,8 @@ def reserve_booth_slot(request, pk):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # Create booking (unpaid)
-    booking = VendorBooking.objects.create(
-        booth_slot=booth_slot,
-        vendor_type=serializer.validated_data.get('vendor_type', 'regular'),
-        first_name=serializer.validated_data['first_name'],
-        last_name=serializer.validated_data['last_name'],
-        vendor_email=serializer.validated_data['vendor_email'],
-        business_name=serializer.validated_data.get('business_name', ''),
-        phone=serializer.validated_data['phone'],
-        notes=serializer.validated_data.get('notes', ''),
-        is_paid=False
-    )
+    # Create booking (unpaid) - uses appropriate model based on vendor_type
+    booking = create_booking_from_serializer(serializer, booth_slot)
 
     # Get frontend URL from request origin or fallback to settings
     origin = request.headers.get('Origin')
@@ -161,18 +195,8 @@ def reserve_event_spot(request, event_id):
         price_amount = 35.00
         vendor_type_label = 'General Vendor'
     
-    # Create booking (unpaid) with auto-assigned slot
-    booking = VendorBooking.objects.create(
-        booth_slot=booth_slot,
-        vendor_type=vendor_type,
-        first_name=serializer.validated_data['first_name'],
-        last_name=serializer.validated_data['last_name'],
-        vendor_email=serializer.validated_data['vendor_email'],
-        business_name=serializer.validated_data.get('business_name', ''),
-        phone=serializer.validated_data['phone'],
-        notes=serializer.validated_data.get('notes', ''),
-        is_paid=False
-    )
+    # Create booking (unpaid) with auto-assigned slot - uses appropriate model
+    booking = create_booking_from_serializer(serializer, booth_slot)
     
     # Create Stripe Checkout Session with manual capture
     if not settings.STRIPE_SECRET_KEY:
@@ -266,9 +290,11 @@ def stripe_webhook(request):
         # Handle multi-date bookings
         if booking_ids_str:
             booking_ids = booking_ids_str.split(',')
-            bookings = VendorBooking.objects.filter(id__in=booking_ids)
+            # Query both models
+            general_bookings = GeneralVendorBooking.objects.filter(id__in=booking_ids)
+            food_bookings = FoodTruckBooking.objects.filter(id__in=booking_ids)
             
-            for booking in bookings:
+            for booking in list(general_bookings) + list(food_bookings):
                 booking.stripe_payment_id = session_id
                 if payment_intent_id:
                     booking.stripe_payment_intent_id = payment_intent_id
@@ -278,15 +304,20 @@ def stripe_webhook(request):
         
         # Handle single date booking
         elif booking_id:
+            booking = None
             try:
-                booking = VendorBooking.objects.get(id=booking_id)
+                booking = GeneralVendorBooking.objects.get(id=booking_id)
+            except GeneralVendorBooking.DoesNotExist:
+                try:
+                    booking = FoodTruckBooking.objects.get(id=booking_id)
+                except FoodTruckBooking.DoesNotExist:
+                    return Response({'error': f'Booking {booking_id} not found'}, status=400)
+            
+            if booking:
                 booking.stripe_payment_id = session_id
                 if payment_intent_id:
                     booking.stripe_payment_intent_id = payment_intent_id
                 booking.save()
-
-            except VendorBooking.DoesNotExist as e:
-                return Response({'error': f'Booking not found: {str(e)}'}, status=400)
 
     # Handle the payment_intent.succeeded event (payment captured/approved)
     if event['type'] == 'payment_intent.succeeded':
@@ -299,10 +330,12 @@ def stripe_webhook(request):
             session_id = payment_intent.get('metadata', {}).get('session_id')
             
             if session_id:
-                # Find all bookings with this session ID (for multi-date bookings)
-                bookings = VendorBooking.objects.filter(stripe_payment_id=session_id)
+                # Find all bookings with this session ID (for multi-date bookings) - query both models
+                general_bookings = GeneralVendorBooking.objects.filter(stripe_payment_id=session_id)
+                food_bookings = FoodTruckBooking.objects.filter(stripe_payment_id=session_id)
+                bookings = list(general_bookings) + list(food_bookings)
                 
-                if bookings.exists():
+                if bookings:
                     for booking in bookings:
                         booking.is_paid = True
                         booking.stripe_payment_intent_id = payment_intent_id
@@ -315,26 +348,44 @@ def stripe_webhook(request):
                     
                     print(f"DEBUG: Processed {len(bookings)} bookings for multi-date payment")
                 else:
-                    # Try single booking lookup as fallback
-                    booking = VendorBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
+                    # Try single booking lookup as fallback - check both models
+                    booking = None
+                    try:
+                        booking = GeneralVendorBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
+                    except GeneralVendorBooking.DoesNotExist:
+                        try:
+                            booking = FoodTruckBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
+                        except FoodTruckBooking.DoesNotExist:
+                            pass
+                    
+                    if booking:
+                        booking.is_paid = True
+                        booking.save()
+                        
+                        booth_slot = booking.booth_slot
+                        booth_slot.is_available = False
+                        booth_slot.save()
+                    
+            else:
+                # Fallback: single booking by payment intent ID - check both models
+                booking = None
+                try:
+                    booking = GeneralVendorBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
+                except GeneralVendorBooking.DoesNotExist:
+                    try:
+                        booking = FoodTruckBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
+                    except FoodTruckBooking.DoesNotExist:
+                        pass
+                
+                if booking:
                     booking.is_paid = True
                     booking.save()
                     
                     booth_slot = booking.booth_slot
                     booth_slot.is_available = False
                     booth_slot.save()
-                    
-            else:
-                # Fallback: single booking by payment intent ID
-                booking = VendorBooking.objects.get(stripe_payment_intent_id=payment_intent_id)
-                booking.is_paid = True
-                booking.save()
                 
-                booth_slot = booking.booth_slot
-                booth_slot.is_available = False
-                booth_slot.save()
-                
-        except VendorBooking.DoesNotExist:
+        except (GeneralVendorBooking.DoesNotExist, FoodTruckBooking.DoesNotExist):
             # Payment intent not found in our system - might be from another source
             print(f"DEBUG: Payment intent {payment_intent_id} not found in VendorBooking")
             pass
@@ -410,18 +461,12 @@ def reserve_multi_event_spots(request):
     created_bookings = []
     try:
         for booking_info in bookings:
-            # Create booking (unpaid)
-            booking = VendorBooking.objects.create(
-                booth_slot=booking_info['booth_slot'],
-                vendor_type=vendor_type,  # Use the vendor_type determined from first reservation
-                first_name=booking_info['reservation_data']['first_name'],
-                last_name=booking_info['reservation_data']['last_name'],
-                vendor_email=booking_info['reservation_data']['vendor_email'],
-                business_name=booking_info['reservation_data'].get('business_name', ''),
-                phone=booking_info['reservation_data']['phone'],
-                notes=booking_info['reservation_data'].get('notes', ''),
-                is_paid=False
-            )
+            # Create booking (unpaid) - create serializer for each to use helper function
+            reservation_serializer = ReserveBoothSlotSerializer(data=booking_info['reservation_data'])
+            if not reservation_serializer.is_valid():
+                # Should not happen as we validated earlier, but handle gracefully
+                continue
+            booking = create_booking_from_serializer(reservation_serializer, booking_info['booth_slot'])
             created_bookings.append(booking)
     
     except Exception as e:
@@ -504,22 +549,26 @@ def reserve_multi_event_spots(request):
 @api_view(['GET'])
 def booking_status(request, session_id):
     """Get booking status by Stripe session ID"""
-    bookings = VendorBooking.objects.filter(stripe_payment_id=session_id)
+    # Query both models
+    general_bookings = GeneralVendorBooking.objects.filter(stripe_payment_id=session_id)
+    food_bookings = FoodTruckBooking.objects.filter(stripe_payment_id=session_id)
+    bookings = list(general_bookings) + list(food_bookings)
     
-    if not bookings.exists():
+    if not bookings:
         return Response(
             {'error': 'No bookings found for this session'},
             status=status.HTTP_404_NOT_FOUND
         )
     
     # Get common info from first booking
-    first_booking = bookings.first()
+    first_booking = bookings[0]
     
-    # Try to parse notes to get selected dates
+    # Try to parse additional_notes to get selected dates (if stored there)
     selected_dates = []
     try:
-        notes_data = json.loads(first_booking.notes or '{}')
-        selected_dates = notes_data.get('selectedDates', [])
+        if first_booking.additional_notes:
+            notes_data = json.loads(first_booking.additional_notes)
+            selected_dates = notes_data.get('selectedDates', [])
     except (json.JSONDecodeError, TypeError):
         pass
     
@@ -531,15 +580,26 @@ def booking_status(request, session_id):
         total_price = session.amount_total / 100  # Convert from cents
     except stripe.error.StripeError:
         # Fallback: calculate from number of bookings
-        total_price = bookings.count() * 35  # Assuming all are regular vendors
+        # Count food trucks ($100) vs general vendors ($35)
+        food_count = len(food_bookings)
+        general_count = len(general_bookings)
+        total_price = (food_count * 100) + (general_count * 35)
+    
+    # Serialize bookings based on their type
+    bookings_data = []
+    for booking in bookings:
+        if isinstance(booking, GeneralVendorBooking):
+            bookings_data.append(GeneralVendorBookingSerializer(booking).data)
+        else:
+            bookings_data.append(FoodTruckBookingSerializer(booking).data)
     
     return Response({
         'status': 'success',
-        'num_dates': bookings.count(),
+        'num_dates': len(bookings),
         'total_price': total_price,
         'first_name': first_booking.first_name,
         'last_name': first_booking.last_name,
         'business_name': first_booking.business_name,
         'selected_dates': selected_dates,
-        'bookings': VendorBookingSerializer(bookings, many=True).data,
+        'bookings': bookings_data,
     })
