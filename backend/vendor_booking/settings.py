@@ -168,13 +168,11 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 
-# Google Sheets Integration
-# Set GOOGLE_SHEETS_CREDENTIALS to either:
-# 1. Path to service account JSON file: '/path/to/credentials.json'
-# 2. JSON string of service account credentials
-GOOGLE_SHEETS_CREDENTIALS = os.getenv('GOOGLE_SHEETS_CREDENTIALS', '')
-GOOGLE_SHEETS_SPREADSHEET_ID = os.getenv('GOOGLE_SHEETS_SPREADSHEET_ID', '')
-GOOGLE_SHEETS_WORKSHEET_NAME = os.getenv('GOOGLE_SHEETS_WORKSHEET_NAME', 'Vendor Bookings')
+# Google Sheets Integration via Apps Script Web App
+# Get the webhook URL from your deployed Apps Script:
+# 1. Deploy → New deployment → Web app
+# 2. Copy the Web App URL
+GOOGLE_APPS_SCRIPT_WEBHOOK_URL = os.getenv('GOOGLE_APPS_SCRIPT_WEBHOOK_URL', '')
 
 FRONTEND_BASE_URL = os.getenv(
     "FRONTEND_BASE_URL",
