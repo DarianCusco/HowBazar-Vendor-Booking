@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { getEvent, Event, reserveEventSpot, ReserveBoothSlotData } from '@/lib/api';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { reserveMultiEventSpots, ReserveBoothSlotData } from '@/lib/api';
 
 const THEME_CONFIG = {
-  "THE FIRST TASTE": { 
+  "THE OPENING WEEKEND": { 
     color: 'from-purple-500 to-pink-500', 
     light: 'bg-purple-50',
     dark: 'bg-purple-900',
@@ -60,22 +60,38 @@ const THEME_CONFIG = {
     border: 'border-amber-200',
     icon: '⚔️',
     text: 'text-amber-600'
+  },
+  "GENERAL MARKET": { 
+    color: 'from-gray-500 to-gray-700', 
+    light: 'bg-gray-50',
+    dark: 'bg-gray-900',
+    border: 'border-gray-200',
+    icon: '🏪',
+    text: 'text-gray-600'
   }
 };
 
 type VendorType = 'regular' | 'food' | null;
 
-export default function EventPage() {
-  const params = useParams();
+type DateInfo = {
+  date: string;
+  formattedDate: string;
+  dayOfWeek: string;
+  theme: string;
+  themeConfig: any;
+  marketType: string;
+  time: string;
+};
+
+export default function MultiDateBookingPage() {
   const router = useRouter();
-  const eventId = parseInt(params.id as string);
-  
-  const [event, setEvent] = useState<Event | null>(null);
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showVendorTypeModal, setShowVendorTypeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedVendorType, setSelectedVendorType] = useState<VendorType>(null);
+  const [selectedDates, setSelectedDates] = useState<DateInfo[]>([]);
   const [formData, setFormData] = useState({
     // Common fields
     fullName: '',
@@ -106,20 +122,131 @@ export default function EventPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadEvent();
-  }, [eventId]);
-
-  const loadEvent = async () => {
-    try {
-      setLoading(true);
-      const data = await getEvent(eventId);
-      console.log('Event data:', data);
-      setEvent(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load event');
-    } finally {
+    // Parse selected dates from URL
+    const sessionData = searchParams.get('session');
+    if (sessionData) {
+      try {
+        const decoded = atob(sessionData);
+        const data = JSON.parse(decoded);
+        const dates = data.dates || [];
+        
+        // Process dates into DateInfo objects
+        const processedDates = dates.map((dateStr: string) => {
+          const date = new Date(dateStr + 'T00:00:00Z');
+          const themeInfo = getThemeForDate(date);
+          const themeConfig = themeInfo ? THEME_CONFIG[themeInfo.theme as keyof typeof THEME_CONFIG] : THEME_CONFIG["THE OPENING WEEKEND"];
+          
+          return {
+            date: dateStr,
+            formattedDate: getFormattedDate(dateStr),
+            dayOfWeek: date.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }),
+            theme: themeInfo?.theme || 'General Market',
+            themeConfig,
+            marketType: getMarketType(dateStr),
+            time: getEventTime(dateStr)
+          };
+        });
+        
+        setSelectedDates(processedDates);
+        setLoading(false);
+      } catch (err) {
+        setError('Invalid booking session data');
+        setLoading(false);
+      }
+    } else {
+      setError('No booking session found');
       setLoading(false);
     }
+  }, [searchParams]);
+
+  // Helper functions from single page
+  const getEventTime = (dateString: string) => {
+    const date = new Date(dateString + 'T00:00:00Z');
+    const dayOfWeek = date.getUTCDay();
+    return dayOfWeek === 0 ? '12:00 PM - 5:00 PM' : '4:00 PM - 10:00 PM';
+  };
+
+  const getMarketType = (dateString: string) => {
+    const date = new Date(dateString + 'T00:00:00Z');
+    const dayOfWeek = date.getUTCDay();
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+    
+    if (dayOfWeek === 0) return `${dayName} Day Market`;
+    if (dayOfWeek === 5) return `${dayName} Night Market`;
+    if (dayOfWeek === 6) return `${dayName} Night Market`;
+    return `${dayName} Market`;
+  };
+
+  const getFormattedDate = (dateString: string) => {
+    const date = new Date(dateString + 'T00:00:00Z');
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC'
+    });
+  };
+
+  const getDaySuffix = (dateString: string) => {
+    const date = new Date(dateString + 'T00:00:00Z');
+    const day = date.getUTCDate();
+    if (day > 3 && day < 21) return 'th';
+    switch (day % 10) {
+      case 1: return "st";
+      case 2: return "nd";
+      case 3: return "rd";
+      default: return "th";
+    }
+  };
+
+  const getFullFormattedDate = (dateString: string) => {
+    const date = new Date(dateString + 'T00:00:00Z');
+    const month = date.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
+    const day = date.getUTCDate();
+    const suffix = getDaySuffix(dateString);
+    const year = date.getUTCFullYear();
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+    return `${weekday}, ${month} ${day}${suffix}, ${year}`;
+  };
+
+  const getThemeForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    const MARKET_SERIES = [
+      { theme: "THE OPENING WEEKEND", dates: ['2025-12-12', '2025-12-13', '2025-12-14'] },
+      { theme: "CARS", dates: ['2025-12-19', '2025-12-20', '2025-12-21'] },
+      { theme: "COMMUNITY SUPPORT", dates: ['2025-12-26', '2025-12-27', '2025-12-28'] },
+      { theme: "CIRCUS", dates: ['2026-01-02', '2026-01-03', '2026-01-04'] },
+      { theme: "WELLNESS", dates: ['2026-01-09', '2026-01-10', '2026-01-11'] },
+      { theme: "MUSIC SHOWCASE", dates: ['2026-01-16', '2026-01-17', '2026-01-18'] },
+      { theme: "MEDIEVAL", dates: ['2026-01-23', '2026-01-24', '2026-01-25'] }
+    ];
+    
+    for (const weekend of MARKET_SERIES) {
+      if (weekend.dates.includes(dateStr)) {
+        return weekend;
+      }
+    }
+    return null;
+  };
+
+  const groupDatesByTheme = () => {
+    const grouped: Record<string, DateInfo[]> = {};
+    
+    selectedDates.forEach(dateInfo => {
+      const theme = dateInfo.theme;
+      if (!grouped[theme]) {
+        grouped[theme] = [];
+      }
+      grouped[theme].push(dateInfo);
+    });
+    
+    return grouped;
+  };
+
+  // Calculate totals
+  const calculateTotalPrice = () => {
+    const pricePerDay = selectedVendorType === 'regular' ? 35 : 100;
+    return pricePerDay * selectedDates.length;
   };
 
   const handleBookSpot = () => {
@@ -138,11 +265,14 @@ export default function EventPage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setSubmitting(true);
-      
-      const reservationData: ReserveBoothSlotData = {
+  e.preventDefault();
+  try {
+    setSubmitting(true);
+    
+    // Create reservation data for each date
+    const reservations = selectedDates.map(dateInfo => ({
+      eventDate: dateInfo.date,
+      reservationData: {
         vendor_name: formData.fullName,
         vendor_email: formData.email,
         business_name: formData.businessName,
@@ -165,72 +295,47 @@ export default function EventPage() {
           generator: formData.generator,
           setupSize: formData.setupSize,
           additionalNotes: formData.additionalNotes,
+          selectedDates: selectedDates.map(d => d.date),
+          multiBooking: true,
         }),
-      };
+      }
+    }));
 
-      const result = await reserveEventSpot(eventId, reservationData);
-      window.location.href = result.checkout_url;
-    } catch (err) {
-      console.error('Reservation error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to reserve spot';
-      alert(`Error: ${errorMessage}\n\nPlease check:\n1. Backend is running\n2. Stripe keys are configured\n3. Database migrations are applied`);
-      setSubmitting(false);
-    }
-  };
-
-  const getEventTime = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00Z');
-    const dayOfWeek = date.getUTCDay();
-    return dayOfWeek === 0 ? '12:00 PM - 5:00 PM' : '4:00 PM - 10:00 PM';
-  };
-
-  const getMarketType = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00Z');
-    const dayOfWeek = date.getUTCDay();
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+    const result = await reserveMultiEventSpots(reservations);
     
-    if (dayOfWeek === 0) return `${dayName} Day Market`;
-    if (dayOfWeek === 5) return `${dayName} Night Market`;
-    if (dayOfWeek === 6) return `${dayName} Night Market`;
-    return `${dayName} Market`;
+    window.location.href = result.checkout_url;
+    
+  } catch (err) {
+    console.error('Reservation error:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Failed to reserve spots';
+    alert(`Error: ${errorMessage}`);
+    setSubmitting(false);
+  }
+};
+
+  const getEarliestDate = () => {
+    return selectedDates.length > 0 ? selectedDates[0].date : '';
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00Z');
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'UTC'
-    });
+  const getLatestDate = () => {
+    return selectedDates.length > 0 ? selectedDates[selectedDates.length - 1].date : '';
   };
 
-  const getDaySuffix = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00Z');
-    const day = date.getUTCDate();
-    if (day > 3 && day < 21) return 'th';
-    switch (day % 10) {
-      case 1: return "st";
-      case 2: return "nd";
-      case 3: return "rd";
-      default: return "th";
-    }
-  };
-
-  const getFormattedDate = (dateString: string) => {
-    const date = new Date(dateString + 'T00:00:00Z');
-    const month = date.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
-    const day = date.getUTCDate();
-    const suffix = getDaySuffix(dateString);
-    return `${month} ${day}${suffix}`;
-  };
-
-  const getEventTheme = (eventName: string) => {
-    const theme = Object.keys(THEME_CONFIG).find(theme => 
-      eventName.toLowerCase().includes(theme.toLowerCase())
-    );
-    return theme ? THEME_CONFIG[theme as keyof typeof THEME_CONFIG] : THEME_CONFIG["THE FIRST TASTE"];
+  const getDateRangeText = () => {
+    if (selectedDates.length === 0) return '';
+    
+    const earliest = new Date(getEarliestDate());
+    const latest = new Date(getLatestDate());
+    
+    const formatMonthDay = (date: Date) => {
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        timeZone: 'UTC'
+      });
+    };
+    
+    return `${formatMonthDay(earliest)} - ${formatMonthDay(latest)}`;
   };
 
   if (loading) {
@@ -238,21 +343,24 @@ export default function EventPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-xl text-gray-700 font-medium">Loading event...</div>
+          <div className="text-xl text-gray-700 font-medium">Loading your selection...</div>
         </div>
       </div>
     );
   }
 
-  if (error || !event) {
+  if (error || selectedDates.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-5xl mb-4">😞</div>
-          <div className="text-red-500 text-xl font-semibold mb-2">Error: {error || 'Event not found'}</div>
+          <div className="text-red-500 text-xl font-semibold mb-2">
+            {error || 'No dates selected'}
+          </div>
+          <p className="text-gray-600 mb-6">Please go back and select dates to book.</p>
           <button
             onClick={() => router.push('/')}
-            className="mt-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all transform hover:-translate-y-0.5 font-semibold"
+            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all transform hover:-translate-y-0.5 font-semibold"
           >
             ← Back to Calendar
           </button>
@@ -261,17 +369,14 @@ export default function EventPage() {
     );
   }
 
-  const availableSlots = event.booth_slots?.filter(slot => slot.is_available) || [];
-  const price = event.price ? parseFloat(String(event.price)) : 0;
-  const displayPrice = isNaN(price) ? 0 : price;
-  const themeConfig = getEventTheme(event.name);
-  const eventTime = getEventTime(event.date);
-  const marketType = getMarketType(event.date);
-  const formattedDate = getFormattedDate(event.date);
+  const groupedDates = groupDatesByTheme();
+  const dateRangeText = getDateRangeText();
+  const primaryTheme = selectedDates[0]?.theme || 'THE OPENING WEEKEND';
+  const primaryThemeConfig = THEME_CONFIG[primaryTheme as keyof typeof THEME_CONFIG] || THEME_CONFIG["THE OPENING WEEKEND"];
+  const totalPrice = calculateTotalPrice();
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${themeConfig.light.replace('bg-', 'from-')} to-white`}>
-      {/* Background Decorative Elements */}
+    <div className={`min-h-screen bg-gradient-to-br ${primaryThemeConfig.light.replace('bg-', 'from-')} to-white`}>
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-10 -left-10 w-20 h-20 bg-purple-200 rounded-full blur-xl opacity-30 animate-pulse"></div>
         <div className="absolute top-1/4 -right-10 w-16 h-16 bg-pink-200 rounded-full blur-xl opacity-40"></div>
@@ -279,9 +384,9 @@ export default function EventPage() {
       </div>
 
       <div className="relative z-10">
-        {/* Header with Centered Text */}
-        <div className={`${themeConfig.dark} text-white px-4 py-3 sm:px-6 sm:py-4 shadow-lg`}>
-          <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className={`${primaryThemeConfig.dark} text-white px-4 py-3 sm:px-6 sm:py-4 shadow-lg`}>
+          <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between">
               <button
                 onClick={() => router.push('/')}
@@ -293,177 +398,182 @@ export default function EventPage() {
               </button>
               
               <div className="flex flex-col items-center text-center mx-4 flex-1 min-w-0">
-                <p className="text-sm sm:text-base font-semibold text-white truncate w-full">Downtown Winter Market</p>
-                <p className="text-xs sm:text-sm text-white/80 font-medium truncate w-full">{formattedDate}</p>
+                <p className="text-sm sm:text-base font-semibold text-white truncate w-full">Multi-Day Booking</p>
+                <p className="text-xs sm:text-sm text-white/80 font-medium truncate w-full">{dateRangeText}</p>
               </div>
               
               <div className="w-20 sm:w-24 text-right flex-shrink-0">
-                <div className="text-2xl sm:text-3xl">{themeConfig.icon}</div>
+                <div className="text-2xl sm:text-3xl">{primaryThemeConfig.icon}</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="py-4 sm:py-8 px-4 sm:px-6 max-w-4xl mx-auto">
-          {/* Event Details Card */}
+        <div className="py-4 sm:py-8 px-4 sm:px-6 max-w-6xl mx-auto">
+          {/* Hero Card */}
           <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden transform transition-all duration-300 hover:shadow-2xl mb-6 sm:mb-8">
-            {/* Theme Header */}
-            <div className={`bg-gradient-to-r ${themeConfig.color} p-6 sm:p-8 md:p-10 text-white relative overflow-hidden`}>
-              <div className="absolute inset-0 bg-black/10"></div>
-              <div className="relative z-10">
-                {/* Centered Title Section */}
-                <div className="text-center mb-4 sm:mb-6">
-                  <div className="flex flex-col items-center mb-4 sm:mb-6">
-                    <div className="text-3xl sm:text-4xl md:text-5xl mb-2 sm:mb-3">{themeConfig.icon}</div>
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 drop-shadow-lg">
-                      {event.name}
-                    </h1>
-                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-white/90 mb-2 sm:mb-3">
-                      {marketType}
-                    </div>
-                  </div>
-                  
-                  {/* Date and Time Info */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-5 inline-block max-w-full">
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
-                      <div className="text-center sm:text-left">
-                        <div className="text-xs sm:text-sm text-white/80 font-medium mb-1">DATE</div>
-                        <div className="text-base sm:text-lg md:text-xl font-semibold">
-                          {formatDate(event.date)}
-                        </div>
-                      </div>
-                      <div className="hidden sm:block w-px h-8 bg-white/30"></div>
-                      <div className="block sm:hidden w-full h-px bg-white/30"></div>
-                      <div className="text-center sm:text-left">
-                        <div className="text-xs sm:text-sm text-white/80 font-medium mb-1">TIME</div>
-                        <div className="text-base sm:text-lg md:text-xl font-semibold">
-                          {eventTime}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Event Content */}
+            {/* Content Area */}
             <div className="p-6 sm:p-8 md:p-10">
-              {/* Location */}
-              <div className="mb-6 sm:mb-8">
-                <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="flex-shrink-0 mt-1">
-                    <div className={`w-3 h-3 ${themeConfig.text.replace('text-', 'bg-')} rounded-full animate-pulse`}></div>
+              {/* Selected Dates Timeline */}
+              <div className="mb-8 sm:mb-10">
+                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">
+                  Selected Dates
+                </h2>
+                {/* Mobile Timeline */}
+                <div className="sm:hidden">
+                  <div className="relative">
+                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-300 to-pink-300"></div>
+                    <div className="space-y-4">
+                      {selectedDates.map((dateInfo, index) => (
+                        <div key={index} className="relative pl-8">
+                          <div className={`absolute left-4 w-3 h-3 ${primaryThemeConfig.text.replace('text-', 'bg-')} rounded-full transform -translate-x-1/2`}></div>
+                          <div className={`${dateInfo.themeConfig.light} border ${dateInfo.themeConfig.border} rounded-xl p-4`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-lg">{dateInfo.themeConfig.icon}</span>
+                                <div>
+                                  <div className="font-semibold text-gray-800">{dateInfo.dayOfWeek}</div>
+                                  <div className="text-xs text-gray-600">{dateInfo.time}</div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-bold text-gray-800">{dateInfo.formattedDate}</div>
+                                <div className="text-xs text-gray-500">{dateInfo.marketType}</div>
+                              </div>
+                            </div>
+                            <div className="text-xs font-medium text-gray-700">{dateInfo.theme}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-1">Location</h3>
-                    <p className="text-gray-600 text-sm sm:text-base">{event.location}</p>
-                  </div>
+                </div>
+
+                {/* Desktop Timeline */}
+                <div className="hidden sm:block">
+                <div className="relative">
+                    {/* Timeline line */}
+                    <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-gradient-to-r from-purple-300 via-pink-300 to-blue-300"></div>
+                    <div 
+                    id="timeline-container"
+                    className="relative flex space-x-8 overflow-x-auto pb-6 px-8"
+                    style={{ scrollbarWidth: 'thin', scrollbarColor: '#cbd5e1 transparent' }}
+                    >
+                    {selectedDates.map((dateInfo, index) => (
+                        <div key={index} className="relative flex-shrink-0">
+                        {/* Timeline dot */}
+                        <div className={`absolute top-1/2 left-1/2 w-4 h-4 ${primaryThemeConfig.text.replace('text-', 'bg-')} rounded-full transform -translate-x-1/2 -translate-y-1/2 z-10`}></div>
+                        {/* Date card */}
+                        <div className={`mt-8 ${dateInfo.themeConfig.light} border ${dateInfo.themeConfig.border} rounded-xl p-4 w-56 transform transition-all duration-300 hover:scale-105 hover:shadow-lg`}>
+                            <div className="text-center">
+                            <div className="text-2xl mb-2">{dateInfo.themeConfig.icon}</div>
+                            <div className="font-bold text-gray-800 mb-1">{dateInfo.formattedDate}</div>
+                            <div className="text-xs text-gray-600 mb-2">{dateInfo.dayOfWeek}</div>
+                            <div className="text-sm font-medium text-gray-700 truncate" title={dateInfo.theme}>
+                                {dateInfo.theme}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">{dateInfo.marketType}</div>
+                            <div className="text-xs text-gray-500 mt-1">{dateInfo.time}</div>
+                            </div>
+                        </div>
+                        </div>
+                    ))}
+                    </div>
+                    {/* Scroll indicator */}
+                    {selectedDates.length > 4 && (
+                    <div className="text-center mt-2">
+                        <p className="text-xs text-gray-500">
+                            drag to scroll through all {selectedDates.length} dates
+                        </p>
+                    </div>
+                    )}
+                </div>
                 </div>
               </div>
+              {/* Pricing & Booking Section */}
+              <div className={`${primaryThemeConfig.light} border ${primaryThemeConfig.border} rounded-2xl sm:rounded-3xl p-6 sm:p-8 transform transition-all duration-300`}>
+                <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
+                  {/* Pricing Info */}
+                  <div className="text-center lg:text-left">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 mb-4">
+                      <div className="text-4xl sm:text-5xl">{primaryThemeConfig.icon}</div>
+                      <div>
+                        <p className="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">
+                          Book All {selectedDates.length} Days
+                        </p>
+                        <p className="text-gray-600 text-lg">
+                          Select vendor type and fill one application for all dates
+                        </p>
+                      </div>
+                    </div>
+                    {/* Mobile Price Display */}
+                    <div className="sm:hidden grid grid-cols-2 gap-4 mb-4">
+                      <div className="text-center bg-blue-50 rounded-xl p-4 border border-blue-200">
+                        <div className="text-sm font-bold text-blue-700 mb-1">VENDOR PACKAGE</div>
+                        <div className="text-xl font-bold text-blue-800">${35 * selectedDates.length}</div>
+                        <div className="text-xs text-blue-600 mt-1">$35 × {selectedDates.length} days</div>
+                        <div className="text-xs text-blue-500 mt-1">26 spots/day</div>
+                      </div>
+                      <div className="text-center bg-orange-50 rounded-xl p-4 border border-orange-200">
+                        <div className="text-sm font-bold text-orange-700 mb-1">FOOD TRUCK PACKAGE</div>
+                        <div className="text-xl font-bold text-orange-800">${100 * selectedDates.length}</div>
+                        <div className="text-xs text-orange-600 mt-1">$100 × {selectedDates.length} days</div>
+                        <div className="text-xs text-orange-500 mt-1">2 spots/day</div>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Description */}
-              {event.description && (
-                <div className="mb-6 sm:mb-8">
-                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200">
-                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-3">About This Event</h3>
-                    <p className="text-gray-700 text-sm sm:text-base leading-relaxed">{event.description}</p>
+                  {/* Desktop Price Display */}
+                  <div className="hidden sm:block text-center lg:text-right">
+                    <div className="space-y-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl p-5 border border-blue-200">
+                        <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                          Vendor Package: ${35 * selectedDates.length}
+                        </p>
+                        <p className="text-sm text-blue-600 mt-1">$35/day × {selectedDates.length} days</p>
+                        <p className="text-xs text-blue-500 mt-1">26 regular vendor spots per day</p>
+                      </div>
+                      <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-2xl p-5 border border-orange-200">
+                        <p className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                          Food Truck Package: ${100 * selectedDates.length}
+                        </p>
+                        <p className="text-sm text-orange-600 mt-1">$100/day × {selectedDates.length} days</p>
+                        <p className="text-xs text-orange-500 mt-1">2 food truck spots per day</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
-
-              {/* Availability Section */}
-              {availableSlots.length === 0 ? (
-                <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center transform transition-all duration-300">
-                  <div className="text-4xl sm:text-5xl mb-4">😢</div>
-                  <p className="text-red-800 font-bold text-xl sm:text-2xl mb-2">
-                    SOLD OUT
+                
+                <button
+                  onClick={handleBookSpot}
+                  className={`w-full mt-6 sm:mt-8 bg-gradient-to-r ${primaryThemeConfig.color} text-white py-4 sm:py-5 rounded-xl hover:opacity-90 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl font-bold text-lg sm:text-xl shadow-lg`}
+                >
+                  ✨ Select Vendor Type & Continue
+                </button>
+                
+                <div className="mt-4 text-center">
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    💡 One application covers all {selectedDates.length} selected dates
                   </p>
-                  <p className="text-red-600 text-sm sm:text-base mb-6">All spots have been booked for this event.</p>
-                  <button
-                    onClick={() => router.push('/')}
-                    className="bg-gradient-to-r from-gray-500 to-gray-700 text-white px-6 py-3 rounded-lg hover:from-gray-600 hover:to-gray-800 transition-all transform hover:-translate-y-0.5 text-sm sm:text-base font-semibold"
-                  >
-                    Check Other Dates
-                  </button>
+                  <p className="text-xs sm:text-sm text-gray-500 font-bold pt-4">
+                    Please note that due to limited space you may not be approved for all, one, or none of your selected dates.
+                    You will only be charged when and if your application is approved.
+                  </p>
                 </div>
-              ) : (
-                <div className={`${themeConfig.light} border ${themeConfig.border} rounded-xl sm:rounded-2xl p-6 sm:p-8 transform transition-all duration-300`}>
-                  <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
-                    {/* Availability Info */}
-                    <div className="text-center lg:text-left">
-                      <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-4 mb-4">
-                        <div className="text-3xl sm:text-4xl">{themeConfig.icon}</div>
-                        <div>
-                          <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">
-                            {availableSlots.length} spot{availableSlots.length !== 1 ? 's' : ''} available
-                          </p>
-                          <p className="text-gray-600 text-sm sm:text-base">
-                            Choose between Vendor or Food Truck
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Mobile Price Display */}
-                      <div className="sm:hidden grid grid-cols-2 gap-4 mb-4">
-                        <div className="text-center bg-blue-50 rounded-xl p-3 border border-blue-200">
-                          <div className="text-xs text-blue-600 font-semibold mb-1">VENDOR</div>
-                          <div className="text-lg font-bold text-blue-700">$35</div>
-                          <div className="text-xs text-blue-500 mt-1">26 spots/day</div>
-                        </div>
-                        <div className="text-center bg-orange-50 rounded-xl p-3 border border-orange-200">
-                          <div className="text-xs text-orange-600 font-semibold mb-1">FOOD TRUCK</div>
-                          <div className="text-lg font-bold text-orange-700">$100</div>
-                          <div className="text-xs text-orange-500 mt-1">2 spots/day</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Desktop Price Display */}
-                    <div className="hidden sm:block text-center lg:text-right">
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                            $35 - Vendor
-                          </p>
-                          <p className="text-sm text-blue-600">26 spots per day</p>
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                            $100 - Food Truck
-                          </p>
-                          <p className="text-sm text-orange-600">2 spots per day</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={handleBookSpot}
-                    className={`w-full mt-6 bg-gradient-to-r ${themeConfig.color} text-white py-4 rounded-xl hover:opacity-90 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl font-bold text-base sm:text-lg shadow-lg`}
-                  >
-                    ✨ Book Your Spot Now
-                  </button>
-                  
-                  <div className="mt-4 text-center">
-                    <p className="text-xs text-gray-500">
-                      💡 Secure your spot before it's gone!
-                    </p>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           </div>
 
           {/* Quick Info Cards - Mobile Only */}
           <div className="sm:hidden grid grid-cols-2 gap-4 mb-6">
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-              <div className="text-xs text-gray-500 font-medium mb-1">EVENT TYPE</div>
-              <div className="text-sm font-semibold text-gray-800">{marketType}</div>
+              <div className="text-xs text-gray-500 font-medium mb-1">TOTAL DAYS</div>
+              <div className="text-lg font-bold text-gray-800">{selectedDates.length}</div>
             </div>
             <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-              <div className="text-xs text-gray-500 font-medium mb-1">VENUE</div>
-              <div className="text-sm font-semibold text-gray-800 truncate">Downtown</div>
+              <div className="text-xs text-gray-500 font-medium mb-1">DATE RANGE</div>
+              <div className="text-sm font-semibold text-gray-800 truncate">{dateRangeText}</div>
             </div>
           </div>
         </div>
@@ -474,12 +584,15 @@ export default function EventPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 overflow-y-auto backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full my-8 transform transition-all duration-300 animate-in fade-in-90 zoom-in-95">
             <div className="p-6 sm:p-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 text-center">
-                Choose Your Vendor Type
-              </h2>
-              <p className="text-gray-600 text-sm sm:text-base text-center mb-6">
-                Select the type of vendor spot you need
-              </p>
+              <div className="text-center mb-6">
+                <div className="text-4xl mb-4">{primaryThemeConfig.icon}</div>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                  Select Vendor Type
+                </h2>
+                <p className="text-gray-600 text-sm sm:text-base">
+                  Your choice applies to all {selectedDates.length} selected dates
+                </p>
+              </div>
               
               <div className="space-y-4">
                 {/* Regular Vendor Option */}
@@ -489,10 +602,12 @@ export default function EventPage() {
                 >
                   <div className="text-center">
                     <div className="text-3xl mb-2">🛍️</div>
-                    <h3 className="text-lg sm:text-xl font-bold text-blue-800 mb-1">Vendor</h3>
-                    <p className="text-blue-600 text-xs sm:text-sm mb-2">8x8 booth with shelving & table</p>
-                    <div className="text-xl sm:text-2xl font-bold text-blue-700">$35</div>
-                    <p className="text-blue-500 text-xs mt-1">26 spots available per day</p>
+                    <h3 className="text-lg sm:text-xl font-bold text-blue-800 mb-1">Vendor Package</h3>
+                    <p className="text-blue-600 text-xs sm:text-sm mb-2">8x8 booth for all {selectedDates.length} days</p>
+                    <div className="text-xl sm:text-2xl font-bold text-blue-700">
+                      ${35 * selectedDates.length}
+                    </div>
+                    <p className="text-blue-500 text-xs mt-1">$35/day × {selectedDates.length} days</p>
                   </div>
                 </button>
 
@@ -503,10 +618,12 @@ export default function EventPage() {
                 >
                   <div className="text-center">
                     <div className="text-3xl mb-2">🍔</div>
-                    <h3 className="text-lg sm:text-xl font-bold text-orange-800 mb-1">Food Truck</h3>
-                    <p className="text-orange-600 text-xs sm:text-sm mb-2">Premium Food Truck Space</p>
-                    <div className="text-xl sm:text-2xl font-bold text-orange-700">$100</div>
-                    <p className="text-orange-500 text-xs mt-1">2 spots available per day</p>
+                    <h3 className="text-lg sm:text-xl font-bold text-orange-800 mb-1">Food Truck Package</h3>
+                    <p className="text-orange-600 text-xs sm:text-sm mb-2">Premium space for all {selectedDates.length} days</p>
+                    <div className="text-xl sm:text-2xl font-bold text-orange-700">
+                      ${100 * selectedDates.length}
+                    </div>
+                    <p className="text-orange-500 text-xs mt-1">$100/day × {selectedDates.length} days</p>
                   </div>
                 </button>
               </div>
@@ -522,12 +639,12 @@ export default function EventPage() {
         </div>
       )}
 
-      {/* Enhanced Booking Modal */}
+      {/* Enhanced Booking Modal for Multi-Date */}
       {showBookingModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 overflow-y-auto backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full my-8 flex flex-col max-h-[90vh] transform transition-all duration-300 animate-in fade-in-90 zoom-in-95">
             {/* Modal Header with Back Button */}
-            <div className={`p-6 sm:p-8 flex-shrink-0 border-b border-gray-100 ${themeConfig.light}`}>
+            <div className={`p-6 sm:p-8 flex-shrink-0 border-b border-gray-100 ${primaryThemeConfig.light}`}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <button
@@ -542,21 +659,21 @@ export default function EventPage() {
                     </div>
                     <div>
                       <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">
-                        {selectedVendorType === 'regular' ? 'Vendor' : 'Food Truck'} Application
+                        Multi-Day {selectedVendorType === 'regular' ? 'Vendor' : 'Food Truck'} Application
                       </h2>
-                      <p className="text-gray-600 text-xs sm:text-sm">{formatDate(event.date)}</p>
+                      <p className="text-gray-600 text-xs sm:text-sm">{selectedDates.length} days selected</p>
                     </div>
                   </div>
                 </div>
                 <div className="text-right hidden sm:block">
                   <p className={`text-lg font-bold bg-clip-text text-transparent ${
-                  selectedVendorType === 'regular' 
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600' 
-                    : 'bg-gradient-to-r from-orange-600 to-red-600'
-                }`}>
-                    ${selectedVendorType === 'regular' ? '35' : '100'}
+                    selectedVendorType === 'regular' 
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600' 
+                      : 'bg-gradient-to-r from-orange-600 to-red-600'
+                  }`}>
+                    ${totalPrice}
                   </p>
-                  <p className="text-sm font-bold text-gray-500">{availableSlots.length} left</p>
+                  <p className="text-sm font-bold text-gray-500">Total for {selectedDates.length} days</p>
                 </div>
               </div>
               
@@ -564,27 +681,59 @@ export default function EventPage() {
               <div className="sm:hidden flex justify-between items-center mt-4">
                 <div className="text-left">
                   <p className={`text-lg font-bold bg-clip-text text-transparent ${
-                  selectedVendorType === 'regular' 
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600' 
-                    : 'bg-gradient-to-r from-orange-600 to-red-600'
-                }`}>
-                    ${selectedVendorType === 'regular' ? '35' : '100'}
+                    selectedVendorType === 'regular' 
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-600' 
+                      : 'bg-gradient-to-r from-orange-600 to-red-600'
+                  }`}>
+                    ${totalPrice}
                   </p>
-                  <p className="text-xs text-gray-500">{availableSlots.length} spots left</p>
+                  <p className="text-xs text-gray-500">{selectedDates.length} days total</p>
                 </div>
                 <div className={`text-sm font-semibold px-3 py-1 text-white rounded-lg ${
                   selectedVendorType === 'regular' 
                     ? 'bg-gradient-to-r from-blue-600 to-cyan-600' 
                     : 'bg-gradient-to-r from-orange-600 to-red-600'
                 }`}>
-                  {selectedVendorType === 'regular' ? 'Vendor' : 'Food Truck'}
+                  Multi-Day {selectedVendorType === 'regular' ? 'Vendor' : 'Food Truck'}
+                </div>
+              </div>
+              
+              {/* Selected Dates Summary */}
+              <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-gray-700">Selected Dates:</span>
+                  <span className="text-xs text-gray-500">{selectedDates.length} days</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {selectedDates.map((dateInfo, index) => (
+                    <span 
+                      key={index}
+                      className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"
+                    >
+                      {dateInfo.formattedDate}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
               <div className="px-4 sm:px-6 md:px-8 pb-6 overflow-y-auto flex-1 space-y-6">
-                {/* Common Fields */}
+                {/* Important Note */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-blue-600 text-xl">💡</div>
+                    <div>
+                      <h4 className="font-semibold text-blue-800 mb-1 text-sm sm:text-base">
+                        One Application for All Dates
+                      </h4>
+                      <p className="text-blue-700 text-xs sm:text-sm">
+                        This application will apply to all {selectedDates.length} selected dates. You'll only need to fill this out once!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
@@ -688,21 +837,19 @@ export default function EventPage() {
 
                 {/* Vendor Specific Fields */}
                 {selectedVendorType === 'regular' && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-semibold text-gray-700">
-                        What will you be selling? <span className="text-red-500">*</span>
-                      </label>
-                      <textarea
-                        required
-                        value={formData.productsSelling}
-                        onChange={(e) => setFormData({ ...formData, productsSelling: e.target.value })}
-                        rows={3}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm sm:text-base"
-                        placeholder="A short list of the types of items/products you plan to offer"
-                      />
-                    </div>
-                  </>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      What will you be selling? <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      required
+                      value={formData.productsSelling}
+                      onChange={(e) => setFormData({ ...formData, productsSelling: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm sm:text-base"
+                      placeholder="A short list of the types of items/products you plan to offer"
+                    />
+                  </div>
                 )}
 
                 {selectedVendorType === 'food' && (
@@ -815,7 +962,7 @@ export default function EventPage() {
 
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Are you sharing a booth with another vendor?
+                    Are you sharing a booth with another vendor? (applies to all dates)
                   </label>
                   <select
                     value={formData.sharingBooth}
@@ -851,8 +998,8 @@ export default function EventPage() {
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-yellow-800">
                       {selectedVendorType === 'regular'
-                        ? "Can you bring your own cord(s)?"
-                        : "Can you bring your own quiet generator(s)?"
+                        ? "Can you bring your own cord(s) for all dates?"
+                        : "Can you bring your own quiet generator(s) for all dates?"
                       }
                     </label>
                     <select
@@ -872,14 +1019,14 @@ export default function EventPage() {
 
                 <div className="space-y-2">
                   <label className="block text-sm font-semibold text-gray-700">
-                    Anything else you'd like us to know?
+                    Anything else you'd like us to know? (applies to all dates)
                   </label>
                   <textarea
                     value={formData.additionalNotes}
                     onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
                     rows={3}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm sm:text-base"
-                    placeholder="Additional information or special requests..."
+                    placeholder="Additional information or special requests for all dates..."
                   />
                 </div>
 
@@ -887,7 +1034,7 @@ export default function EventPage() {
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
                   <h4 className="font-semibold text-purple-800 mb-2 text-sm sm:text-base">Indemnification Agreement</h4>
                   <p className="text-purple-700 text-xs sm:text-sm">
-                    By submitting this form, you agree to indemnify and hold harmless the City, its representatives, and event organizers from any claims, damages, or liabilities arising from your participation as a vendor at the market.
+                    By submitting this form, you agree to indemnify and hold harmless the City, its representatives, and event organizers from any claims, damages, or liabilities arising from your participation as a vendor at the market for all selected dates.
                   </p>
                   <p className="text-purple-600 text-xs mt-2">
                     (If you'd like to read the full indemnification clause, click here)
@@ -933,7 +1080,7 @@ export default function EventPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`flex-1 px-4 sm:px-6 py-3 bg-gradient-to-r ${themeConfig.color} text-white rounded-xl hover:opacity-90 transition-all duration-200 transform hover:scale-105 font-semibold text-sm sm:text-base disabled:opacity-50 disabled:transform-none`}
+                  className={`flex-1 px-4 sm:px-6 py-3 bg-gradient-to-r ${primaryThemeConfig.color} text-white rounded-xl hover:opacity-90 transition-all duration-200 transform hover:scale-105 font-semibold text-sm sm:text-base disabled:opacity-50 disabled:transform-none`}
                 >
                   {submitting ? (
                     <span className="flex items-center justify-center">
@@ -941,7 +1088,7 @@ export default function EventPage() {
                       Processing...
                     </span>
                   ) : (
-                    'Continue to Payment'
+                    `Pay $${totalPrice} for ${selectedDates.length} Days`
                   )}
                 </button>
               </div>

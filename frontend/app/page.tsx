@@ -92,9 +92,16 @@ export default function Home() {
   const router = useRouter();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentMonth, setCurrentMonth] = useState(new Date('2025-12-01')); // Start with December
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    return new Date(2025, 11, 1); // December 2025
+  });
   const [error, setError] = useState<string | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
+  
+  // Multi-selection state
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multi'>('single');
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
+  const [showMobileSummary, setShowMobileSummary] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -159,6 +166,7 @@ export default function Home() {
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentMonth(prev => {
       const newDate = new Date(prev);
+      
       if (direction === 'prev') {
         newDate.setMonth(prev.getMonth() - 1);
       } else {
@@ -168,8 +176,13 @@ export default function Home() {
       const newYear = newDate.getFullYear();
       const newMonth = newDate.getMonth();
       
-      if (newYear === 2025 && newMonth === 11) return newDate; // December 2025
-      if (newYear === 2026 && newMonth === 0) return newDate;  // January 2026
+      // Only allow December 2025 and January 2026
+      const isDecember2025 = newYear === 2025 && newMonth === 11;
+      const isJanuary2026 = newYear === 2026 && newMonth === 0;
+      
+      if (isDecember2025 || isJanuary2026) {
+        return newDate;
+      }
       
       return prev;
     });
@@ -197,18 +210,85 @@ export default function Home() {
   };
 
   const handleDateClick = (date: Date | null, event: CalendarEvent | undefined) => {
+    if (!date || !event) return;
+    
+    const dateStr = date.toISOString().split('T')[0];
     const themeInfo = getThemeForDate(date);
-    if (date && themeInfo && event) {
+    
+    if (!themeInfo || event.available_slots <= 0) return;
+
+    if (selectionMode === 'single') {
+      // Original behavior - go to single event page
       router.push(`/event/${event.id}`);
+    } else {
+      // Multi-select behavior
+      setSelectedDates(prev => {
+        if (prev.includes(dateStr)) {
+          // Deselect
+          return prev.filter(d => d !== dateStr);
+        } else {
+          // Select (no limit)
+          return [...prev, dateStr];
+        }
+      });
     }
   };
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  const handleProceedToBooking = () => {
+    if (selectedDates.length === 0) return;
+    
+    // Sort dates chronologically
+    const sortedDates = [...selectedDates].sort();
+    
+    // Create a booking session with all selected dates
+    const sessionData = {
+      dates: sortedDates,
+      count: sortedDates.length,
+      // For now, we'll pass as query params. In production, create a session in backend
+    };
+    
+    // Encode the data for URL
+    const encodedData = btoa(JSON.stringify(sessionData));
+    router.push(`/booking/multi?session=${encodedData}`);
+  };
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const clearAllSelections = () => {
+    setSelectedDates([]);
+  };
+
+  const removeDateFromSelection = (dateStr: string) => {
+    setSelectedDates(prev => prev.filter(d => d !== dateStr));
+  };
+
+  // Calculate totals
+  const calculateTotalPrice = (vendorType: 'regular' | 'food') => {
+    const pricePerDay = vendorType === 'regular' ? 35 : 100;
+    return pricePerDay * selectedDates.length;
+  };
+
+  // Group selected dates by theme
+  const groupSelectedDatesByTheme = () => {
+    const grouped: Record<string, string[]> = {};
+    
+    selectedDates.forEach(dateStr => {
+      const date = new Date(dateStr);
+      const themeInfo = getThemeForDate(date);
+      const theme = themeInfo?.theme || 'Other';
+      
+      if (!grouped[theme]) {
+        grouped[theme] = [];
+      }
+      grouped[theme].push(dateStr);
+    });
+    
+    return grouped;
+  };
+
+  const getAvailableSlotsForDate = (date: Date | null) => {
+    if (!date) return 0;
+    const event = getEventForDate(date);
+    return event ? event.available_slots : 26;
+  };
 
   if (loading) {
     return (
@@ -227,18 +307,18 @@ export default function Home() {
   }
 
   const days = getDaysInMonth(currentMonth);
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
   const currentMonthName = monthNames[currentMonth.getMonth()];
   const currentYear = currentMonth.getFullYear();
-
-  // Calculate available slots for market series dates
-  const getAvailableSlotsForDate = (date: Date | null) => {
-    if (!date) return 0;
-    const event = getEventForDate(date);
-    return event ? event.available_slots : 26;
-  };
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const groupedDates = groupSelectedDatesByTheme();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pb-20 sm:pb-6">
+      {/* Header */}
       <div className="relative py-4 sm:py-6 shadow-lg overflow-hidden bg-gray-900">
         <div className="absolute inset-0 overflow-hidden">
           <div 
@@ -268,43 +348,125 @@ export default function Home() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full p-3 sm:p-4 md:p-6">
         <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl flex flex-col h-full p-3 sm:p-4 md:p-6">
-          {/* Calendar Navigation */}
+          {/* Calendar Navigation & Mode Selection */}
           <div className="mb-4 sm:mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <button
-                onClick={() => navigateMonth('prev')}
-                className="sm:px-4 sm:py-2 p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Previous month"
-                disabled={currentMonth.getMonth() === 11 && currentMonth.getFullYear() === 2025}
-              >
-                <span className="hidden sm:inline">← Previous</span>
-                <span className="sm:hidden text-lg">←</span>
-              </button>
-              
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent text-center">
-                {currentMonthName} {currentYear}
-              </h2>
-              
-              <button
-                onClick={() => navigateMonth('next')}
-                className="sm:px-4 sm:py-2 p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Next month"
-                disabled={currentMonth.getMonth() === 0 && currentMonth.getFullYear() === 2026}
-              >
-                <span className="hidden sm:inline">Next →</span>
-                <span className="sm:hidden text-lg">→</span>
-              </button>
+            {/* Mobile Mode Toggle (Top on mobile) */}
+            <div className="sm:hidden mb-4">
+              <div className="flex flex-col gap-3">
+                <div className="text-center">
+                  <span className="text-sm font-medium text-gray-600">Select the dates you'd like to vend</span>
+                </div>
+                <div className="flex justify-center">
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => {
+                        setSelectionMode('single');
+                        setSelectedDates([]);
+                      }}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        selectionMode === 'single' 
+                          ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow' 
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Single Day
+                    </button>
+                    <button
+                      onClick={() => setSelectionMode('multi')}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                        selectionMode === 'multi' 
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow' 
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Multiple Days
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Navigation with centered mode toggle */}
+            <div className="hidden sm:block">
+              <div className="flex justify-between items-center mb-4">
+                <button
+                  onClick={() => navigateMonth('prev')}
+                  className="sm:px-4 sm:py-2 p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Previous month"
+                  disabled={currentMonth.getMonth() === 11 && currentMonth.getFullYear() === 2025}
+                >
+                  <span className="hidden sm:inline">← Previous</span>
+                  <span className="sm:hidden text-lg">←</span>
+                </button>
+                
+                <div className="flex flex-col items-center">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent text-center">
+                    {currentMonthName} {currentYear}
+                  </h2>
+                  
+                  {/* Desktop Mode Toggle - Centered under month */}
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-sm text-gray-600 font-medium">Booking Mode:</span>
+                    <div className="flex bg-gray-100 rounded-lg p-1">
+                      <button
+                        onClick={() => {
+                          setSelectionMode('single');
+                          setSelectedDates([]);
+                        }}
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                          selectionMode === 'single' 
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow' 
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        Single Day
+                      </button>
+                      <button
+                        onClick={() => setSelectionMode('multi')}
+                        className={`px-3 py-1 rounded-md text-sm font-medium transition-all ${
+                          selectionMode === 'multi' 
+                            ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow' 
+                            : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        Multiple Days
+                      </button>
+                    </div>
+                    
+                    {/* Selection counter badge */}
+                    {selectionMode === 'multi' && selectedDates.length > 0 && (
+                      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {selectedDates.length} selected
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => navigateMonth('next')}
+                  className="sm:px-4 sm:py-2 p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Next month"
+                  disabled={currentMonth.getMonth() === 0 && currentMonth.getFullYear() === 2026}
+                >
+                  <span className="hidden sm:inline">Next →</span>
+                  <span className="sm:hidden text-lg">→</span>
+                </button>
+              </div>
             </div>
             
-            {/* Swipe instruction for mobile */}
-            <div className="sm:hidden text-center">
-              <p className="text-xs text-gray-500">Swipe left/right to navigate months</p>
+            {/* Instructions */}
+            <div className="text-center mt-3">
+              <p className="text-xs text-gray-500">
+                {selectionMode === 'multi' 
+                  ? '💡 Tap dates to select multiple days • Swipe left/right to navigate months'
+                  : '💡 Tap a date to book • Swipe left/right to navigate months'}
+              </p>
             </div>
           </div>
 
           {/* Calendar Grid */}
           <div 
-            className="flex-1 grid grid-cols-7 gap-1 sm:gap-2 min-h-0"
+            className="flex-1 grid grid-cols-7 gap-1 sm:gap-2 min-h-0 mb-4"
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
@@ -324,6 +486,8 @@ export default function Home() {
               const themeInfo = getThemeForDate(date);
               const themeConfig = themeInfo ? THEME_CONFIG[themeInfo.theme as keyof typeof THEME_CONFIG] : null;
               const isToday = date && date.toDateString() === new Date().toDateString();
+              const dateStr = date ? date.toISOString().split('T')[0] : '';
+              const isSelected = date ? selectedDates.includes(dateStr) : false;
               
               const availableSlots = getAvailableSlotsForDate(date);
               const hasAvailableSpots = availableSlots > 0;
@@ -334,7 +498,7 @@ export default function Home() {
                   key={index}
                   onClick={() => handleDateClick(date, event)}
                   className={`
-                    rounded-lg sm:rounded-xl border-2 transition-all relative flex flex-col items-center justify-start p-1 sm:p-2 min-h-[60px] sm:min-h-[80px]
+                    rounded-lg sm:rounded-xl border-2 transition-all relative flex flex-col items-center justify-start p-1 sm:p-2 min-h-[70px] sm:min-h-[90px]
                     ${date === null 
                       ? 'border-transparent cursor-default' 
                       : isEventDay
@@ -345,22 +509,32 @@ export default function Home() {
                     }
                     ${isToday ? 'ring-2 ring-blue-400 ring-offset-1 sm:ring-offset-2' : ''}
                     ${isEventDay && hasAvailableSpots ? 'shadow-md hover:shadow-lg' : 'shadow-sm'}
+                    ${isSelected ? 'ring-4 ring-blue-500 ring-offset-1 sm:ring-offset-2 scale-105 z-10' : ''}
                   `}
                 >
                   {date && (
                     <>
+                      {/* Selection indicator */}
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 sm:top-1 sm:right-1 w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg z-20">
+                          <span className="text-white text-xs font-bold">
+                            {selectedDates.findIndex(d => d === dateStr) + 1}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Day number */}
-                      <div className={`text-xs sm:text-sm font-semibold mb-1 ${
+                      <div className={`text-xs sm:text-sm font-semibold mt-1 ${
                         isEventDay 
                           ? hasAvailableSpots ? 'text-gray-800' : 'text-gray-500'
                           : 'text-gray-600'
-                      } ${isToday ? 'font-bold text-blue-600' : ''}`}>
+                      } ${isToday ? 'font-bold text-blue-600' : ''} ${isSelected ? 'font-bold' : ''}`}>
                         {date.getDate()}
                       </div>
 
                       {/* Theme Icon */}
                       {themeConfig && (
-                        <div className="text-base sm:text-lg mb-0.5 sm:mb-1">{themeConfig.icon}</div>
+                        <div className="text-lg sm:text-xl mb-0.5 sm:mb-1">{themeConfig.icon}</div>
                       )}
 
                       {/* Availability */}
@@ -383,17 +557,25 @@ export default function Home() {
                         </div>
                       )}
 
+                      {/* Vendor type indicators */}
                       {isEventDay && (
-                        <div className="hidden sm:flex mt-1 justify-center space-x-1">
-                          <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">26 Vendors</span>
-                          <span className="text-[10px] bg-orange-100 text-orange-700 px-1 rounded">2 Food</span>
-                        </div>
+                        <>
+                          <div className="hidden sm:flex mt-1 justify-center space-x-1">
+                            <span className="text-[10px] bg-blue-100 text-blue-700 px-1 rounded">26 Vendors</span>
+                            <span className="text-[10px] bg-orange-100 text-orange-700 px-1 rounded">2 Food</span>
+                          </div>
+                          
+                          <div className="sm:hidden flex justify-center space-x-1 mt-0.5">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" title="26 Vendor spots"></div>
+                            <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" title="2 Food truck spots"></div>
+                          </div>
+                        </>
                       )}
                       
-                      {isEventDay && (
-                        <div className="sm:hidden flex justify-center space-x-1 mt-0.5">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" title="26 Vendor spots"></div>
-                          <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" title="2 Food truck spots"></div>
+                      {/* Multi-select hint */}
+                      {selectionMode === 'multi' && isEventDay && hasAvailableSpots && !isSelected && (
+                        <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                         </div>
                       )}
                     </>
@@ -402,6 +584,140 @@ export default function Home() {
               );
             })}
           </div>
+
+          {/* Multi-Selection Summary (Desktop) - Stacked Layout */}
+          {selectionMode === 'multi' && selectedDates.length > 0 && (
+            <div className="hidden sm:block mt-6">
+              <div className="flex flex-col items-center gap-6 max-w-3xl mx-auto">
+                {/* Pricing Summary Box */}
+                <div className="w-full bg-white p-6 rounded-xl border border-blue-200 shadow-lg">
+                  <h4 className="font-bold text-gray-800 mb-4 text-center text-lg">Pricing Summary</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <div className="flex justify-between items-center mb-2">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-700">Regular Vendor</div>
+                            <div className="text-xs text-gray-500">$35/day × {selectedDates.length} days</div>
+                          </div>
+                          <div className="text-xl font-bold text-blue-600">
+                            ${calculateTotalPrice('regular')}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          26 vendor spots available per day
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="bg-orange-50 p-4 rounded-lg border border-orange-100">
+                        <div className="flex justify-between items-center mb-2">
+                          <div>
+                            <div className="text-sm font-semibold text-gray-700">Food Vendor</div>
+                            <div className="text-xs text-gray-500">$100/day × {selectedDates.length} days</div>
+                          </div>
+                          <div className="text-xl font-bold text-orange-600">
+                            ${calculateTotalPrice('food')}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          2 food truck spots available per day
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 pt-4 border-t text-center">
+                    <div className="text-sm text-gray-600 mb-3">
+                      Select vendor type on the next page
+                    </div>
+                    <div className="flex justify-center gap-4">
+                      <button
+                        onClick={clearAllSelections}
+                        className="px-6 py-3 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                      >
+                        Clear All Selections
+                      </button>
+                      <button
+                        onClick={handleProceedToBooking}
+                        className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                      >
+                        Book {selectedDates.length} Day{selectedDates.length > 1 ? 's' : ''} →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Selected Dates & Grouping - Smaller Stacked Layout */}
+                <div className="w-full">
+                  <div className="mb-4">
+                    <h3 className="font-bold text-gray-600 text-center mb-3">
+                      Selected Dates ({selectedDates.length})
+                    </h3>
+                    
+                    {/* Selected dates chips - smaller */}
+                    <div className="flex flex-wrap justify-center gap-2 mb-4">
+                      {selectedDates.map(dateStr => {
+                        const date = new Date(dateStr);
+                        const themeInfo = getThemeForDate(date);
+                        const config = themeInfo ? THEME_CONFIG[themeInfo.theme as keyof typeof THEME_CONFIG] : null;
+                        
+                        return (
+                          <div 
+                            key={dateStr}
+                            className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow text-xs"
+                          >
+                            <span className="text-sm">{config?.icon}</span>
+                            <div>
+                              <div className="font-medium text-black">
+                                {date.toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeDateFromSelection(dateStr);
+                              }}
+                              className="ml-1 text-gray-400 hover:text-red-500 hover:bg-red-50 w-5 h-5 rounded-full flex items-center justify-center text-xs"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Grouped by theme - smaller */}
+                    {selectedDates.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2 text-center">Grouped by Theme:</h4>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {Object.entries(groupedDates).map(([theme, dates]) => {
+                            const config = THEME_CONFIG[theme as keyof typeof THEME_CONFIG];
+                            return (
+                              <div key={theme} className="bg-white px-3 py-2 rounded-lg border border-gray-200 shadow-sm flex items-center gap-2 text-xs">
+                                <span className="text-sm">{config?.icon}</span>
+                                <div>
+                                  <div className="font-medium text-gray-800">{theme}</div>
+                                  <div className="text-gray-600">
+                                    {dates.length} day{dates.length > 1 ? 's' : ''}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Theme Legend */}
           <div className="mt-4 sm:mt-6">
@@ -435,7 +751,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Quick Info section bottom */}
+          {/* Quick Info section */}
           <div className="mt-4 sm:mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 sm:p-4 border border-blue-200">
             <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 sm:gap-4 text-center">
               <div>
@@ -456,16 +772,95 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Mobile only */}
           <div className="sm:hidden mt-4 text-center">
             <p className="text-xs text-gray-500">
-              💡 Tap event dates to book • Colored dots show vendor types
+              {selectionMode === 'multi' 
+                ? '💡 Tap dates to select • Blue number shows selection order'
+                : '💡 Tap event dates to book • Colored dots show vendor types'}
             </p>
           </div>
         </div>
       </div>
 
-     <style jsx>{`
+      {selectionMode === 'multi' && selectedDates.length > 0 && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl rounded-t-2xl p-4 z-50 animate-slide-up">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <div className="font-bold text-gray-800">
+                {selectedDates.length} day{selectedDates.length > 1 ? 's' : ''} selected
+              </div>
+              <div className="text-sm text-gray-600">
+                Regular: ${calculateTotalPrice('regular')} • Food: ${calculateTotalPrice('food')}
+              </div>
+            </div>
+            <button
+              onClick={() => setShowMobileSummary(!showMobileSummary)}
+              className="text-gray-500"
+            >
+              {showMobileSummary ? '▲' : '▼'}
+            </button>
+          </div>
+          
+          {showMobileSummary && (
+            <div className="mb-4">
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto mb-3">
+                {selectedDates.map(dateStr => {
+                  const date = new Date(dateStr);
+                  const themeInfo = getThemeForDate(date);
+                  const config = themeInfo ? THEME_CONFIG[themeInfo.theme as keyof typeof THEME_CONFIG] : null;
+                  
+                  return (
+                    <div 
+                      key={dateStr}
+                      className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border"
+                    >
+                      <span className="text-base">{config?.icon}</span>
+                      <div>
+                        <div className="text-xs font-semibold text-black">
+                          {date.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeDateFromSelection(dateStr);
+                        }}
+                        className="ml-1 text-gray-400 hover:text-red-500"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="text-xs text-gray-600 mb-3">
+                {Object.keys(groupedDates).length} theme{Object.keys(groupedDates).length > 1 ? 's' : ''}
+              </div>
+            </div>
+          )}
+          
+          <div className="flex gap-3">
+            <button
+              onClick={clearAllSelections}
+              className="flex-1 px-4 py-3 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+            >
+              Clear
+            </button>
+            <button
+              onClick={handleProceedToBooking}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-emerald-600 shadow-lg"
+            >
+              Book Now →
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
         @keyframes pan {
           0% {
             background-position: 0% center;
@@ -477,6 +872,18 @@ export default function Home() {
         .animate-pan {
           animation: pan 60s linear infinite;
           background-size: 200% auto;
+        }
+        
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
         }
       `}</style>
     </div>
