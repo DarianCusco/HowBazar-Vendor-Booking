@@ -150,7 +150,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://how-bazar-vendor-booking.vercel.app",
     "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
-    "https://downtown-market-series.vercel.app/"
+    "https://downtown-market-series.vercel.app"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -160,7 +160,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://how-bazar-vendor-booking-oih5lgba7-dariancuscos-projects.vercel.app",
     "https://crossover.proxy.rlwy.net",
     "https://howbazar-vendor-booking-production.up.railway.app",
-    "https://downtown-market-series.vercel.app/"
+    "https://downtown-market-series.vercel.app"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
