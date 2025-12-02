@@ -53,7 +53,7 @@ const THEME_CONFIG = {
     icon: '🎵',
     text: 'text-yellow-600'
   },
-  "MEDIEVAL": { 
+  "THE FINALE": { 
     color: 'from-amber-700 to-yellow-600', 
     light: 'bg-amber-50',
     dark: 'bg-amber-900',
