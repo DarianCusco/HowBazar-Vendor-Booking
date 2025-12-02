@@ -386,6 +386,35 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Mobile Month Navigation */}
+            <div className="sm:hidden mb-4">
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={() => navigateMonth('prev')}
+                  className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Previous month"
+                  disabled={currentMonth.getMonth() === 11 && currentMonth.getFullYear() === 2025}
+                >
+                  <span className="text-lg">←</span>
+                </button>
+                
+                <div className="flex flex-col items-center">
+                  <h2 className="text-lg font-bold text-gray-800 bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent text-center">
+                    {currentMonthName} {currentYear}
+                  </h2>
+                </div>
+                
+                <button
+                  onClick={() => navigateMonth('next')}
+                  className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Next month"
+                  disabled={currentMonth.getMonth() === 0 && currentMonth.getFullYear() === 2026}
+                >
+                  <span className="text-lg">→</span>
+                </button>
+              </div>
+            </div>
+
             {/* Desktop Navigation with centered mode toggle */}
             <div className="hidden sm:block">
               <div className="flex justify-between items-center mb-4">
