@@ -53,7 +53,7 @@ const THEME_CONFIG = {
     icon: '🎵',
     text: 'text-yellow-600'
   },
-  "MEDIEVAL": { 
+  "THE FINALE": { 
     color: 'from-amber-700 to-yellow-600', 
     light: 'bg-amber-50',
     dark: 'bg-amber-900',
@@ -219,7 +219,7 @@ export default function MultiDateBookingPage() {
       { theme: "CIRCUS", dates: ['2026-01-02', '2026-01-03', '2026-01-04'] },
       { theme: "WELLNESS", dates: ['2026-01-09', '2026-01-10', '2026-01-11'] },
       { theme: "MUSIC SHOWCASE", dates: ['2026-01-16', '2026-01-17', '2026-01-18'] },
-      { theme: "MEDIEVAL", dates: ['2026-01-23', '2026-01-24', '2026-01-25'] }
+      { theme: "THE FINALE", dates: ['2026-01-23', '2026-01-24', '2026-01-25'] }
     ];
     
     for (const weekend of MARKET_SERIES) {

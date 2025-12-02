@@ -36,7 +36,7 @@ const MARKET_SERIES = [
     dates: ['2026-01-16', '2026-01-17', '2026-01-18']
   },
   {
-    theme: "MEDIEVAL",
+    theme: "THE FINALE",
     subtheme: "Knights & fantasy",
     dates: ['2026-01-23', '2026-01-24', '2026-01-25']
   }
@@ -80,7 +80,7 @@ const THEME_CONFIG = {
     bg: 'bg-yellow-50',
     icon: '🎵'
   },
-  "MEDIEVAL": { 
+  "THE FINALE": { 
     color: 'from-amber-700 to-yellow-600', 
     border: 'border-amber-400',
     bg: 'bg-amber-50',
@@ -766,7 +766,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="font-semibold text-gray-800 text-sm sm:text-base">Total Events</div>
-                <div className="text-xl sm:text-2xl font-bold text-purple-600">21 Days</div>
+                <div className="text-xl sm:text-2xl font-bold text-purple-600">21</div>
                 <div className="text-xs text-gray-600">Dec 12 - Jan 25</div>
               </div>
             </div>
