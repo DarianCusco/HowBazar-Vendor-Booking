@@ -55,7 +55,7 @@ A full-stack web application for booking vendor booths at market events. Vendors
 
 4. **Set up Stripe Webhook** (for production)
    - In Stripe Dashboard, go to Developers → Webhooks
-   - Add endpoint: `http://your-domain.com/api/stripe-webhook/`
+   - Add endpoint: `http://your-domain.com/api/stripe/webhook`
    - Copy the webhook signing secret to `.env`:
      ```
      STRIPE_WEBHOOK_SECRET=whsec_...
@@ -110,7 +110,7 @@ A full-stack web application for booking vendor booths at market events. Vendors
 - `POST /api/booth-slots/{id}/reserve/` - Reserve a booth slot (creates Stripe session)
 
 ### Webhooks
-- `POST /api/stripe-webhook/` - Stripe webhook endpoint
+- `POST /api/stripe/webhook` - Stripe webhook endpoint
 
 ## 💳 Stripe Integration
 
