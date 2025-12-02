@@ -150,24 +150,33 @@ export default function EventPage() {
         vendor_email: formData.email,
         business_name: formData.businessName,
         phone: formData.phone,
-        notes: JSON.stringify({
-          vendorType: selectedVendorType, // Keep for backward compatibility in notes
-          preferredName: formData.preferredName,
-          pronouns: formData.pronouns,
-          instagram: formData.instagram,
-          productsSelling: formData.productsSelling,
-          cuisineType: formData.cuisineType,
-          foodItems: formData.foodItems,
-          priceRange: formData.priceRange,
-          socialMediaConsent: formData.socialMediaConsent,
-          photoConsent: formData.photoConsent,
-          noiseSensitive: formData.noiseSensitive,
-          sharingBooth: formData.sharingBooth,
-          boothPartnerInstagram: formData.boothPartnerInstagram,
-          electricityCord: formData.electricityCord,
+        // Personal information
+        preferred_name: formData.preferredName,
+        pronouns: formData.pronouns,
+        instagram: formData.instagram,
+        // Consents
+        social_media_consent: formData.socialMediaConsent,
+        photo_consent: formData.photoConsent,
+        noise_sensitive: formData.noiseSensitive,
+        // Booth sharing
+        sharing_booth: formData.sharingBooth,
+        booth_partner_instagram: formData.boothPartnerInstagram,
+        // Additional
+        price_range: formData.priceRange,
+        additional_notes: formData.additionalNotes,
+        // Vendor-specific fields
+        ...(selectedVendorType === 'regular' ? {
+          products_selling: formData.productsSelling,
+          electricity_cord: formData.electricityCord,
+        } : {
+          cuisine_type: formData.cuisineType,
+          food_items: formData.foodItems,
+          setup_size: formData.setupSize,
           generator: formData.generator,
-          setupSize: formData.setupSize,
-          additionalNotes: formData.additionalNotes,
+        }),
+        // Keep notes for backward compatibility (empty or minimal)
+        notes: JSON.stringify({
+          vendorType: selectedVendorType,
         }),
       };
 

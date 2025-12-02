@@ -38,6 +38,29 @@ export interface ReserveBoothSlotData {
   vendor_email: string;
   business_name?: string;
   phone: string;
+  // Personal information
+  preferred_name?: string;
+  pronouns?: string;
+  instagram?: string;
+  // Consents
+  social_media_consent?: string;
+  photo_consent?: string;
+  noise_sensitive?: string;
+  // Booth sharing
+  sharing_booth?: string;
+  booth_partner_instagram?: string;
+  // Additional
+  price_range?: string;
+  additional_notes?: string;
+  // General vendor specific
+  products_selling?: string;
+  electricity_cord?: string;
+  // Food truck specific
+  cuisine_type?: string;
+  food_items?: string;
+  setup_size?: string;
+  generator?: string;
+  // Legacy notes field (for backward compatibility)
   notes?: string;
 }
 
