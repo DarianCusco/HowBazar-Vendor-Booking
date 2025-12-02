@@ -23,9 +23,10 @@ class GoogleAppsScriptSync:
         webhook_url = getattr(settings, 'GOOGLE_APPS_SCRIPT_WEBHOOK_URL', '')
         
         if not webhook_url:
-            logger.info("Google Apps Script disabled: GOOGLE_APPS_SCRIPT_WEBHOOK_URL not configured")
+            logger.warning("Google Apps Script disabled: GOOGLE_APPS_SCRIPT_WEBHOOK_URL not configured")
             return False
         
+        logger.info(f"Google Apps Script enabled with webhook URL: {webhook_url[:50]}...")
         return True
     
     def _prepare_booking_data(self, booking) -> dict:
@@ -84,6 +85,7 @@ class GoogleAppsScriptSync:
         try:
             # Prepare data
             data = self._prepare_booking_data(booking)
+            logger.debug(f"Sending booking {booking.id} data to Apps Script: {list(data.keys())}")
             
             # Send POST request to Apps Script webhook
             response = requests.post(
@@ -93,24 +95,32 @@ class GoogleAppsScriptSync:
                 timeout=10  # 10 second timeout
             )
             
+            logger.debug(f"Apps Script response status: {response.status_code}")
+            logger.debug(f"Apps Script response: {response.text[:200]}")
+            
             # Check response
             if response.status_code == 200:
-                result = response.json()
-                if result.get('success'):
-                    logger.info(f"Successfully synced booking {booking.id} to Google Sheets")
-                    return True
-                else:
-                    logger.error(f"Apps Script returned error: {result.get('error', 'Unknown error')}")
+                try:
+                    result = response.json()
+                    if result.get('success'):
+                        logger.info(f"Successfully synced booking {booking.id} to Google Sheets")
+                        return True
+                    else:
+                        logger.error(f"Apps Script returned error: {result.get('error', 'Unknown error')}")
+                        return False
+                except ValueError:
+                    # Response might not be JSON
+                    logger.error(f"Apps Script returned non-JSON response: {response.text[:200]}")
                     return False
             else:
-                logger.error(f"Failed to sync booking {booking.id}: HTTP {response.status_code}")
+                logger.error(f"Failed to sync booking {booking.id}: HTTP {response.status_code}, Response: {response.text[:200]}")
                 return False
                 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Network error syncing booking {booking.id} to Google Sheets: {str(e)}")
+            logger.error(f"Network error syncing booking {booking.id} to Google Sheets: {str(e)}", exc_info=True)
             return False
         except Exception as e:
-            logger.error(f"Error syncing booking {booking.id} to Google Sheets: {str(e)}")
+            logger.error(f"Error syncing booking {booking.id} to Google Sheets: {str(e)}", exc_info=True)
             return False
     
     def update_booking(self, booking) -> bool:

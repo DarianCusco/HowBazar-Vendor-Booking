@@ -21,14 +21,25 @@ def sync_booking_to_google_sheets(sender, instance, created, **kwargs):
     try:
         apps_script_sync = get_apps_script_sync()
         
+        # Log for debugging
+        logger.info(f"Syncing booking {instance.id} to Google Sheets (created={created}, is_paid={instance.is_paid})")
+        
         if created:
             # New booking - append to sheet
-            apps_script_sync.sync_booking(instance)
+            result = apps_script_sync.sync_booking(instance)
+            if result:
+                logger.info(f"Successfully synced new booking {instance.id} to Google Sheets")
+            else:
+                logger.warning(f"Failed to sync new booking {instance.id} to Google Sheets")
         else:
             # Updated booking - sync as new row (or implement update logic in Apps Script)
-            apps_script_sync.update_booking(instance)
+            result = apps_script_sync.update_booking(instance)
+            if result:
+                logger.info(f"Successfully synced updated booking {instance.id} to Google Sheets")
+            else:
+                logger.warning(f"Failed to sync updated booking {instance.id} to Google Sheets")
             
     except Exception as e:
         # Log error but don't fail the booking process
-        logger.error(f"Error syncing booking {instance.id} to Google Sheets: {str(e)}")
+        logger.error(f"Error syncing booking {instance.id} to Google Sheets: {str(e)}", exc_info=True)
 
