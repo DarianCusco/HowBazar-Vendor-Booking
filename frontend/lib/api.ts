@@ -32,6 +32,7 @@ export interface CalendarEvent {
 }
 
 export interface ReserveBoothSlotData {
+  vendor_type?: 'regular' | 'food';
   first_name: string;
   last_name: string;
   vendor_email: string;

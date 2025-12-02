@@ -274,13 +274,14 @@ export default function MultiDateBookingPage() {
     const reservations = selectedDates.map(dateInfo => ({
       eventDate: dateInfo.date,
       reservationData: {
+        vendor_type: selectedVendorType || 'regular',
         first_name: formData.firstName,
         last_name: formData.lastName,
         vendor_email: formData.email,
         business_name: formData.businessName,
         phone: formData.phone,
         notes: JSON.stringify({
-          vendorType: selectedVendorType,
+          vendorType: selectedVendorType, // Keep for backward compatibility in notes
           preferredName: formData.preferredName,
           pronouns: formData.pronouns,
           instagram: formData.instagram,

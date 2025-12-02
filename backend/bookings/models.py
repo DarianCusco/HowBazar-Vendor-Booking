@@ -67,7 +67,18 @@ class BoothSlot(models.Model):
 
 
 class VendorBooking(models.Model):
+    VENDOR_TYPE_CHOICES = [
+        ('regular', 'General Vendor'),
+        ('food', 'Food Truck Vendor'),
+    ]
+    
     booth_slot = models.ForeignKey(BoothSlot, on_delete=models.CASCADE, related_name='bookings')
+    vendor_type = models.CharField(
+        max_length=20,
+        choices=VENDOR_TYPE_CHOICES,
+        default='regular',
+        help_text="Type of vendor: General Vendor or Food Truck Vendor"
+    )
     first_name = models.CharField(max_length=100, default='')
     last_name = models.CharField(max_length=100, default='')
     vendor_email = models.EmailField(validators=[EmailValidator()])
