@@ -34,12 +34,13 @@ class EventListSerializer(serializers.ModelSerializer):
 class VendorBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = VendorBooking
-        fields = ['id', 'booth_slot', 'vendor_name', 'vendor_email', 'business_name', 'phone', 'notes', 'is_paid', 'timestamp']
+        fields = ['id', 'booth_slot', 'first_name', 'last_name', 'vendor_email', 'business_name', 'phone', 'notes', 'is_paid', 'timestamp']
         read_only_fields = ['id', 'is_paid', 'timestamp']
 
 
 class ReserveBoothSlotSerializer(serializers.Serializer):
-    vendor_name = serializers.CharField(max_length=200)
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
     vendor_email = serializers.EmailField()
     business_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
     phone = serializers.CharField(max_length=20)

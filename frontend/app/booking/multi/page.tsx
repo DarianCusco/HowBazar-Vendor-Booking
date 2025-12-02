@@ -94,7 +94,8 @@ export default function MultiDateBookingPage() {
   const [selectedDates, setSelectedDates] = useState<DateInfo[]>([]);
   const [formData, setFormData] = useState({
     // Common fields
-    fullName: '',
+    firstName: '',
+    lastName: '',
     preferredName: '',
     pronouns: '',
     businessName: '',
@@ -273,7 +274,8 @@ export default function MultiDateBookingPage() {
     const reservations = selectedDates.map(dateInfo => ({
       eventDate: dateInfo.date,
       reservationData: {
-        vendor_name: formData.fullName,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
         vendor_email: formData.email,
         business_name: formData.businessName,
         phone: formData.phone,
@@ -737,15 +739,29 @@ export default function MultiDateBookingPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
-                      Full Name <span className="text-red-500">*</span>
+                      First Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm sm:text-base"
-                      placeholder="Legal name for internal use"
+                      placeholder="First name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Last Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm sm:text-base"
+                      placeholder="Last name"
                     />
                   </div>
 
@@ -1050,7 +1066,8 @@ export default function MultiDateBookingPage() {
                     setShowBookingModal(false);
                     setSelectedVendorType(null);
                     setFormData({
-                      fullName: '',
+                      firstName: '',
+                      lastName: '',
                       preferredName: '',
                       pronouns: '',
                       businessName: '',
