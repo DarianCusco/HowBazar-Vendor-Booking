@@ -84,7 +84,7 @@ const THEME_CONFIG = {
     color: 'from-amber-700 to-yellow-600', 
     border: 'border-amber-400',
     bg: 'bg-amber-50',
-    icon: '⚔️'
+    icon: '⭐'
   }
 };
 
