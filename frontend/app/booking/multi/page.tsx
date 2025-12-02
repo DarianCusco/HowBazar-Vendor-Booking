@@ -981,7 +981,7 @@ export default function MultiDateBookingPage() {
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 bg-white text-sm sm:text-base"
                   >
                     <option value="" className="text-gray-500">Select option</option>
-                    <option value="no-preference" className="text-gray-900">No preference</option>
+                    <option value="no" className="text-gray-900">No preference</option>
                     <option value="yes" className="text-gray-900">Yes, I am noise-sensitive</option>
                   </select>
                 </div>
