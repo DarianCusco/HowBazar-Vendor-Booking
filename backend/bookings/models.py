@@ -83,7 +83,7 @@ class BaseVendorBooking(models.Model):
     # Consents and preferences
     social_media_consent = models.CharField(max_length=10, blank=True, choices=[('yes', 'Yes'), ('no', 'No')])
     photo_consent = models.CharField(max_length=10, blank=True, choices=[('yes', 'Yes'), ('no', 'No')])
-    noise_sensitive = models.CharField(max_length=10, blank=True, choices=[('yes', 'Yes'), ('no', 'No')])
+    noise_sensitive = models.CharField(max_length=15, blank=True)
     
     # Booth sharing
     sharing_booth = models.CharField(max_length=10, blank=True, choices=[('yes', 'Yes'), ('no', 'No')])
