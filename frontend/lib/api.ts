@@ -32,7 +32,8 @@ export interface CalendarEvent {
 }
 
 export interface ReserveBoothSlotData {
-  vendor_name: string;
+  first_name: string;
+  last_name: string;
   vendor_email: string;
   business_name?: string;
   phone: string;

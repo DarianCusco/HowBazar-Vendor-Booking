@@ -32,9 +32,9 @@ class BoothSlotAdmin(admin.ModelAdmin):
 
 @admin.register(VendorBooking)
 class VendorBookingAdmin(admin.ModelAdmin):
-    list_display = ['vendor_name', 'booth_slot', 'vendor_email', 'payment_status', 'is_paid', 'timestamp']
+    list_display = ['first_name', 'last_name', 'booth_slot', 'vendor_email', 'payment_status', 'is_paid', 'timestamp']
     list_filter = ['is_paid', 'timestamp']
-    search_fields = ['vendor_name', 'vendor_email', 'business_name']
+    search_fields = ['first_name', 'last_name', 'vendor_email', 'business_name']
     raw_id_fields = ['booth_slot']
     readonly_fields = ['timestamp', 'stripe_payment_id', 'stripe_payment_intent_id']
     

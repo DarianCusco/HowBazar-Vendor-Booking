@@ -69,7 +69,8 @@ def reserve_booth_slot(request, pk):
     # Create booking (unpaid)
     booking = VendorBooking.objects.create(
         booth_slot=booth_slot,
-        vendor_name=serializer.validated_data['vendor_name'],
+        first_name=serializer.validated_data['first_name'],
+        last_name=serializer.validated_data['last_name'],
         vendor_email=serializer.validated_data['vendor_email'],
         business_name=serializer.validated_data.get('business_name', ''),
         phone=serializer.validated_data['phone'],
@@ -150,7 +151,8 @@ def reserve_event_spot(request, event_id):
     # Create booking (unpaid) with auto-assigned slot
     booking = VendorBooking.objects.create(
         booth_slot=booth_slot,
-        vendor_name=serializer.validated_data['vendor_name'],
+        first_name=serializer.validated_data['first_name'],
+        last_name=serializer.validated_data['last_name'],
         vendor_email=serializer.validated_data['vendor_email'],
         business_name=serializer.validated_data.get('business_name', ''),
         phone=serializer.validated_data['phone'],
@@ -425,7 +427,8 @@ def reserve_multi_event_spots(request):
             # Create booking (unpaid)
             booking = VendorBooking.objects.create(
                 booth_slot=booking_info['booth_slot'],
-                vendor_name=booking_info['reservation_data']['vendor_name'],
+                first_name=booking_info['reservation_data']['first_name'],
+                last_name=booking_info['reservation_data']['last_name'],
                 vendor_email=booking_info['reservation_data']['vendor_email'],
                 business_name=booking_info['reservation_data'].get('business_name', ''),
                 phone=booking_info['reservation_data']['phone'],
@@ -547,7 +550,8 @@ def booking_status(request, session_id):
         'status': 'success',
         'num_dates': bookings.count(),
         'total_price': total_price,
-        'vendor_name': first_booking.vendor_name,
+        'first_name': first_booking.first_name,
+        'last_name': first_booking.last_name,
         'business_name': first_booking.business_name,
         'selected_dates': selected_dates,
         'bookings': VendorBookingSerializer(bookings, many=True).data,
