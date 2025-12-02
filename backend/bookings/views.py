@@ -286,6 +286,9 @@ def stripe_webhook(request):
         booking_id = session['metadata'].get('booking_id')  # For single date
         payment_intent_id = session.get('payment_intent')
         session_id = session['id']
+        payment_status = session.get('payment_status', '')
+
+        print(f"DEBUG: checkout.session.completed received - session_id={session_id}, payment_status={payment_status}, payment_intent_id={payment_intent_id}")
 
         # Import here to avoid circular imports
         from .google_apps_script import get_apps_script_sync
@@ -293,10 +296,14 @@ def stripe_webhook(request):
         # Handle multi-date bookings
         if booking_ids_str:
             booking_ids = booking_ids_str.split(',')
+            print(f"DEBUG: Processing multi-date bookings: {booking_ids}")
             # Query both models
             general_bookings = GeneralVendorBooking.objects.filter(id__in=booking_ids)
             food_bookings = FoodTruckBooking.objects.filter(id__in=booking_ids)
             bookings = list(general_bookings) + list(food_bookings)
+            
+            if not bookings:
+                print(f"DEBUG: WARNING - No bookings found for IDs: {booking_ids}")
             
             for booking in bookings:
                 booking.stripe_payment_id = session_id
@@ -310,25 +317,32 @@ def stripe_webhook(request):
             apps_script_sync = get_apps_script_sync()
             for booking in bookings:
                 try:
+                    print(f"DEBUG: Attempting to sync booking {booking.id} to Google Sheets...")
                     result = apps_script_sync.sync_booking(booking)
                     if result:
-                        print(f"DEBUG: Synced booking {booking.id} to Google Sheets after payment")
+                        print(f"DEBUG: SUCCESS - Synced booking {booking.id} to Google Sheets after payment")
                     else:
-                        print(f"DEBUG: Failed to sync booking {booking.id} to Google Sheets")
+                        print(f"DEBUG: FAILED - Failed to sync booking {booking.id} to Google Sheets (sync_booking returned False)")
                 except Exception as e:
-                    print(f"DEBUG: Error syncing booking {booking.id} to Google Sheets: {str(e)}")
+                    print(f"DEBUG: ERROR - Exception syncing booking {booking.id} to Google Sheets: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
             
             print(f"DEBUG: Updated {len(bookings)} bookings with session {session_id}")
         
         # Handle single date booking
         elif booking_id:
+            print(f"DEBUG: Processing single booking: {booking_id}")
             booking = None
             try:
                 booking = GeneralVendorBooking.objects.get(id=booking_id)
+                print(f"DEBUG: Found GeneralVendorBooking {booking_id}")
             except GeneralVendorBooking.DoesNotExist:
                 try:
                     booking = FoodTruckBooking.objects.get(id=booking_id)
+                    print(f"DEBUG: Found FoodTruckBooking {booking_id}")
                 except FoodTruckBooking.DoesNotExist:
+                    print(f"DEBUG: ERROR - Booking {booking_id} not found in either model")
                     return Response({'error': f'Booking {booking_id} not found'}, status=400)
             
             if booking:
@@ -340,13 +354,54 @@ def stripe_webhook(request):
                 # Sync to Google Sheets (payment made, not yet captured)
                 apps_script_sync = get_apps_script_sync()
                 try:
+                    print(f"DEBUG: Attempting to sync booking {booking.id} to Google Sheets...")
                     result = apps_script_sync.sync_booking(booking)
                     if result:
-                        print(f"DEBUG: Synced booking {booking.id} to Google Sheets after payment")
+                        print(f"DEBUG: SUCCESS - Synced booking {booking.id} to Google Sheets after payment")
                     else:
-                        print(f"DEBUG: Failed to sync booking {booking.id} to Google Sheets")
+                        print(f"DEBUG: FAILED - Failed to sync booking {booking.id} to Google Sheets (sync_booking returned False)")
                 except Exception as e:
-                    print(f"DEBUG: Error syncing booking {booking.id} to Google Sheets: {str(e)}")
+                    print(f"DEBUG: ERROR - Exception syncing booking {booking.id} to Google Sheets: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print(f"DEBUG: ERROR - Booking {booking_id} is None")
+    
+    # Also handle payment_intent.requires_capture (for manual capture - payment made, awaiting capture)
+    if event['type'] == 'payment_intent.requires_capture':
+        payment_intent = event['data']['object']
+        payment_intent_id = payment_intent['id']
+        print(f"DEBUG: payment_intent.requires_capture received - payment_intent_id={payment_intent_id}")
+        
+        # Import here to avoid circular imports
+        from .google_apps_script import get_apps_script_sync
+        
+        # Find bookings by payment intent ID - check both models
+        bookings = []
+        try:
+            general_bookings = GeneralVendorBooking.objects.filter(stripe_payment_intent_id=payment_intent_id)
+            food_bookings = FoodTruckBooking.objects.filter(stripe_payment_intent_id=payment_intent_id)
+            bookings = list(general_bookings) + list(food_bookings)
+        except Exception as e:
+            print(f"DEBUG: Error finding bookings by payment_intent_id: {str(e)}")
+        
+        if bookings:
+            print(f"DEBUG: Found {len(bookings)} bookings for payment_intent {payment_intent_id}")
+            apps_script_sync = get_apps_script_sync()
+            for booking in bookings:
+                try:
+                    print(f"DEBUG: Attempting to sync booking {booking.id} to Google Sheets (requires_capture)...")
+                    result = apps_script_sync.sync_booking(booking)
+                    if result:
+                        print(f"DEBUG: SUCCESS - Synced booking {booking.id} to Google Sheets after payment (requires_capture)")
+                    else:
+                        print(f"DEBUG: FAILED - Failed to sync booking {booking.id} to Google Sheets")
+                except Exception as e:
+                    print(f"DEBUG: ERROR - Exception syncing booking {booking.id}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+        else:
+            print(f"DEBUG: No bookings found for payment_intent_id {payment_intent_id}")
 
     # Handle the payment_intent.succeeded event (payment captured/approved)
     if event['type'] == 'payment_intent.succeeded':
