@@ -147,7 +147,7 @@ def reserve_booth_slot(request, pk):
         )
 
         booking.stripe_payment_id = checkout_session.id
-        booking.save()
+        booking.save(update_fields=['stripe_payment_id'])
 
         return Response({
             'checkout_url': checkout_session.url,
@@ -244,7 +244,7 @@ def reserve_event_spot(request, event_id):
         )
 
         booking.stripe_payment_id = checkout_session.id
-        booking.save()
+        booking.save(update_fields=['stripe_payment_id'])
 
         return Response({
             'checkout_url': checkout_session.url,
@@ -296,9 +296,11 @@ def stripe_webhook(request):
             
             for booking in list(general_bookings) + list(food_bookings):
                 booking.stripe_payment_id = session_id
+                update_fields = ['stripe_payment_id']
                 if payment_intent_id:
                     booking.stripe_payment_intent_id = payment_intent_id
-                booking.save()
+                    update_fields.append('stripe_payment_intent_id')
+                booking.save(update_fields=update_fields)
             
             print(f"DEBUG: Updated {len(bookings)} bookings with session {session_id}")
         
@@ -317,7 +319,7 @@ def stripe_webhook(request):
                 booking.stripe_payment_id = session_id
                 if payment_intent_id:
                     booking.stripe_payment_intent_id = payment_intent_id
-                booking.save()
+                booking.save(update_fields=['stripe_payment_id', 'stripe_payment_intent_id'])
 
     # Handle the payment_intent.succeeded event (payment captured/approved)
     if event['type'] == 'payment_intent.succeeded':
@@ -339,7 +341,7 @@ def stripe_webhook(request):
                     for booking in bookings:
                         booking.is_paid = True
                         booking.stripe_payment_intent_id = payment_intent_id
-                        booking.save()
+                        booking.save(update_fields=['is_paid', 'stripe_payment_intent_id'])
                         
                         # Mark booth slot as unavailable
                         booth_slot = booking.booth_slot
@@ -360,7 +362,7 @@ def stripe_webhook(request):
                     
                     if booking:
                         booking.is_paid = True
-                        booking.save()
+                        booking.save(update_fields=['is_paid'])
                         
                         booth_slot = booking.booth_slot
                         booth_slot.is_available = False
@@ -379,7 +381,7 @@ def stripe_webhook(request):
                 
                 if booking:
                     booking.is_paid = True
-                    booking.save()
+                    booking.save(update_fields=['is_paid'])
                     
                     booth_slot = booking.booth_slot
                     booth_slot.is_available = False
@@ -527,7 +529,7 @@ def reserve_multi_event_spots(request):
         # Save Stripe session ID to all bookings
         for booking in created_bookings:
             booking.stripe_payment_id = checkout_session.id
-            booking.save()
+            booking.save(update_fields=['stripe_payment_id'])
         
         return Response({
             'checkout_url': checkout_session.url,
