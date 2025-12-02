@@ -80,12 +80,22 @@ class GoogleAppsScriptSync:
         Returns True if successful, False otherwise
         """
         if not self.enabled:
+            logger.warning(f"Google Apps Script sync disabled - not syncing booking {booking.id}")
+            print(f"DEBUG: Google Apps Script sync disabled - webhook URL not configured")
+            return False
+        
+        if not self.webhook_url:
+            logger.error(f"Google Apps Script webhook URL is empty - not syncing booking {booking.id}")
+            print(f"DEBUG: Google Apps Script webhook URL is empty")
             return False
         
         try:
             # Prepare data
             data = self._prepare_booking_data(booking)
-            logger.debug(f"Sending booking {booking.id} data to Apps Script: {list(data.keys())}")
+            logger.info(f"Sending booking {booking.id} data to Apps Script: {list(data.keys())}")
+            print(f"DEBUG: Preparing to sync booking {booking.id} to Google Sheets")
+            print(f"DEBUG: Webhook URL: {self.webhook_url[:50]}...")
+            print(f"DEBUG: Booking data keys: {list(data.keys())}")
             
             # Send POST request to Apps Script webhook
             response = requests.post(
@@ -95,8 +105,10 @@ class GoogleAppsScriptSync:
                 timeout=10  # 10 second timeout
             )
             
-            logger.debug(f"Apps Script response status: {response.status_code}")
-            logger.debug(f"Apps Script response: {response.text[:200]}")
+            logger.info(f"Apps Script response status: {response.status_code}")
+            logger.info(f"Apps Script response: {response.text[:200]}")
+            print(f"DEBUG: Apps Script response status: {response.status_code}")
+            print(f"DEBUG: Apps Script response: {response.text[:200]}")
             
             # Check response
             if response.status_code == 200:
@@ -104,23 +116,33 @@ class GoogleAppsScriptSync:
                     result = response.json()
                     if result.get('success'):
                         logger.info(f"Successfully synced booking {booking.id} to Google Sheets")
+                        print(f"DEBUG: SUCCESS - Booking {booking.id} synced to Google Sheets")
                         return True
                     else:
-                        logger.error(f"Apps Script returned error: {result.get('error', 'Unknown error')}")
+                        error_msg = result.get('error', 'Unknown error')
+                        logger.error(f"Apps Script returned error: {error_msg}")
+                        print(f"DEBUG: Apps Script returned error: {error_msg}")
                         return False
                 except ValueError:
                     # Response might not be JSON
                     logger.error(f"Apps Script returned non-JSON response: {response.text[:200]}")
+                    print(f"DEBUG: Apps Script returned non-JSON response: {response.text[:200]}")
                     return False
             else:
-                logger.error(f"Failed to sync booking {booking.id}: HTTP {response.status_code}, Response: {response.text[:200]}")
+                error_msg = f"HTTP {response.status_code}, Response: {response.text[:200]}"
+                logger.error(f"Failed to sync booking {booking.id}: {error_msg}")
+                print(f"DEBUG: Failed to sync booking {booking.id}: {error_msg}")
                 return False
                 
         except requests.exceptions.RequestException as e:
             logger.error(f"Network error syncing booking {booking.id} to Google Sheets: {str(e)}", exc_info=True)
+            print(f"DEBUG: Network error syncing booking {booking.id}: {str(e)}")
             return False
         except Exception as e:
             logger.error(f"Error syncing booking {booking.id} to Google Sheets: {str(e)}", exc_info=True)
+            print(f"DEBUG: Exception syncing booking {booking.id}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def update_booking(self, booking) -> bool:
