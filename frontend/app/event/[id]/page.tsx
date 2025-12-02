@@ -58,7 +58,7 @@ const THEME_CONFIG = {
     light: 'bg-amber-50',
     dark: 'bg-amber-900',
     border: 'border-amber-200',
-    icon: '⚔️',
+    icon: '⭐',
     text: 'text-amber-600'
   }
 };
@@ -795,9 +795,10 @@ export default function EventPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
-                      Do you consent to being included in a social media highlight?
+                      Do you consent to being included in a social media highlight? <span className="text-red-500">*</span>
                     </label>
                     <select
+                      required
                       value={formData.socialMediaConsent}
                       onChange={(e) => setFormData({ ...formData, socialMediaConsent: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 bg-white text-sm sm:text-base"
@@ -810,9 +811,10 @@ export default function EventPage() {
 
                   <div className="space-y-2">
                     <label className="block text-sm font-semibold text-gray-700">
-                      Photo/Video Consent
+                      Photo/Video Consent <span className="text-red-500">*</span>
                     </label>
                     <select
+                      required
                       value={formData.photoConsent}
                       onChange={(e) => setFormData({ ...formData, photoConsent: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 text-gray-900 bg-white text-sm sm:text-base"

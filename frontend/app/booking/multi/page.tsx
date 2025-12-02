@@ -58,7 +58,7 @@ const THEME_CONFIG = {
     light: 'bg-amber-50',
     dark: 'bg-amber-900',
     border: 'border-amber-200',
-    icon: '⚔️',
+    icon: '⭐',
     text: 'text-amber-600'
   },
   "GENERAL MARKET": { 
