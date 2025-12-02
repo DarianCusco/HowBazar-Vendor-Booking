@@ -62,7 +62,7 @@ For local webhook testing, use Stripe CLI:
 
 ```bash
 # Install Stripe CLI: https://stripe.com/docs/stripe-cli
-stripe listen --forward-to localhost:8000/api/stripe-webhook/
+stripe listen --forward-to localhost:8000/api/stripe/webhook
 ```
 
 Copy the webhook signing secret and add it to `.env`:

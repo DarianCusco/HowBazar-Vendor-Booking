@@ -760,7 +760,7 @@ export default function Home() {
                 <div className="text-xs text-gray-600">26 spots/day</div>
               </div>
               <div>
-                <div className="font-semibold text-gray-800 text-sm sm:text-base">Food Vendor</div>
+                <div className="font-semibold text-gray-800 text-sm sm:text-base">Food Truck</div>
                 <div className="text-xl sm:text-2xl font-bold text-orange-600">$100</div>
                 <div className="text-xs text-gray-600">2 spots/day</div>
               </div>

@@ -11,7 +11,8 @@ urlpatterns = [
     path('booth-slots/<int:pk>/', booth_slot_detail, name='booth-slot-detail'),
     path('booth-slots/<int:pk>/reserve/', reserve_booth_slot, name='reserve-booth-slot'),
     path('events/<int:event_id>/reserve/', reserve_event_spot, name='reserve-event-spot'),
-    path('stripe-webhook/', stripe_webhook, name='stripe-webhook'),
+    path('stripe/webhook/', stripe_webhook, name='stripe-webhook'),
     path('events/multi/reserve/', reserve_multi_event_spots, name='reserve-multi-event-spots'),
+
 ]
 

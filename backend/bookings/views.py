@@ -170,7 +170,7 @@ def reserve_event_spot(request, event_id):
     except (json.JSONDecodeError, TypeError):
         pass
     
-    # Hardcoded prices: $35 for regular vendors, $100 for food vendors
+    # Hardcoded prices: $35 for regular vendors, $100 for food trucks
     if vendor_type == 'food':
         price_amount = 100.00
         vendor_type_label = 'Food Truck'
