@@ -68,7 +68,7 @@ class ReserveBoothSlotSerializer(serializers.Serializer):
     # Consents
     social_media_consent = serializers.CharField(max_length=10, required=False, allow_blank=True)
     photo_consent = serializers.CharField(max_length=10, required=False, allow_blank=True)
-    noise_sensitive = serializers.CharField(max_length=10, required=False, allow_blank=True)
+    noise_sensitive = serializers.CharField(max_length=15, required=False, allow_blank=True)
     
     # Booth sharing
     sharing_booth = serializers.CharField(max_length=10, required=False, allow_blank=True)
