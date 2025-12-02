@@ -96,6 +96,8 @@ class GoogleAppsScriptSync:
             print(f"DEBUG: Preparing to sync booking {booking.id} to Google Sheets")
             print(f"DEBUG: Webhook URL: {self.webhook_url[:50]}...")
             print(f"DEBUG: Booking data keys: {list(data.keys())}")
+            print(f"DEBUG: Vendor type: {data.get('vendor_type', 'NOT FOUND')}")
+            print(f"DEBUG: Booking type: {type(booking).__name__}")
             
             # Send POST request to Apps Script webhook
             response = requests.post(
