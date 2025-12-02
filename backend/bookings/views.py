@@ -69,6 +69,7 @@ def reserve_booth_slot(request, pk):
     # Create booking (unpaid)
     booking = VendorBooking.objects.create(
         booth_slot=booth_slot,
+        vendor_type=serializer.validated_data.get('vendor_type', 'regular'),
         first_name=serializer.validated_data['first_name'],
         last_name=serializer.validated_data['last_name'],
         vendor_email=serializer.validated_data['vendor_email'],
@@ -148,9 +149,22 @@ def reserve_event_spot(request, event_id):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # Get vendor type from serializer (default to 'regular' if not provided)
+    vendor_type = serializer.validated_data.get('vendor_type', 'regular')
+    
+    # Determine price based on vendor type (hardcoded prices)
+    # $35 for regular vendors, $100 for food trucks
+    if vendor_type == 'food':
+        price_amount = 100.00
+        vendor_type_label = 'Food Truck'
+    else:  # regular or default
+        price_amount = 35.00
+        vendor_type_label = 'General Vendor'
+    
     # Create booking (unpaid) with auto-assigned slot
     booking = VendorBooking.objects.create(
         booth_slot=booth_slot,
+        vendor_type=vendor_type,
         first_name=serializer.validated_data['first_name'],
         last_name=serializer.validated_data['last_name'],
         vendor_email=serializer.validated_data['vendor_email'],
@@ -159,30 +173,6 @@ def reserve_event_spot(request, event_id):
         notes=serializer.validated_data.get('notes', ''),
         is_paid=False
     )
-
-    # Determine price based on vendor type (hardcoded prices)
-    # Parse vendor type from notes JSON
-    vendor_type = None
-    price_amount = 0  # Default price
-    
-    try:
-        if booking.notes:
-            notes_data = json.loads(booking.notes)
-            vendor_type = notes_data.get('vendorType')
-    except (json.JSONDecodeError, TypeError):
-        pass
-    
-    # Hardcoded prices: $35 for regular vendors, $100 for food trucks
-    if vendor_type == 'food':
-        price_amount = 100.00
-        vendor_type_label = 'Food Truck'
-    elif vendor_type == 'regular':
-        price_amount = 35.00
-        vendor_type_label = 'Vendor'
-    else:
-        # Default to regular vendor price if type not specified
-        price_amount = 35.00
-        vendor_type_label = 'Vendor'
     
     # Create Stripe Checkout Session with manual capture
     if not settings.STRIPE_SECRET_KEY:
@@ -401,13 +391,9 @@ def reserve_multi_event_spots(request):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        # Determine vendor type and price from notes (first reservation sets it)
-        try:
-            notes_data = json.loads(serializer.validated_data.get('notes', '{}'))
-            if vendor_type is None:
-                vendor_type = notes_data.get('vendorType')
-        except (json.JSONDecodeError, TypeError):
-            pass
+        # Get vendor type from serializer (first reservation sets it for all)
+        if vendor_type is None:
+            vendor_type = serializer.validated_data.get('vendor_type', 'regular')
         
         # Calculate price
         price_per_day = 100.00 if vendor_type == 'food' else 35.00
@@ -427,6 +413,7 @@ def reserve_multi_event_spots(request):
             # Create booking (unpaid)
             booking = VendorBooking.objects.create(
                 booth_slot=booking_info['booth_slot'],
+                vendor_type=vendor_type,  # Use the vendor_type determined from first reservation
                 first_name=booking_info['reservation_data']['first_name'],
                 last_name=booking_info['reservation_data']['last_name'],
                 vendor_email=booking_info['reservation_data']['vendor_email'],
@@ -457,7 +444,7 @@ def reserve_multi_event_spots(request):
     
     # Create Stripe Checkout Session
     try:
-        vendor_type_label = 'Food Truck' if vendor_type == 'food' else 'Vendor'
+        vendor_type_label = 'Food Truck' if vendor_type == 'food' else 'General Vendor'
         
         # Get dates for description
         dates = [b['event'].date for b in bookings]
