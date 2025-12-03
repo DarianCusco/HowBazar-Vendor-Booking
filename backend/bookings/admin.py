@@ -14,12 +14,6 @@ class EventAdmin(admin.ModelAdmin):
     def available_spots_count(self, obj):
         return obj.booth_slots.filter(is_available=True).count()
     available_spots_count.short_description = 'Available Spots'
-    
-    def get_readonly_fields(self, request, obj=None):
-        # Make number_of_spots read-only if there are booked slots (to prevent data loss)
-        if obj and obj.booth_slots.filter(is_available=False).exists():
-            return ['number_of_spots']
-        return []
 
 
 @admin.register(BoothSlot)
