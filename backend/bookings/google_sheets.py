@@ -180,10 +180,10 @@ class GoogleSheetsSync:
                 booking.preferred_name or '',
                 booking.pronouns or '',
                 booking.instagram or '',
-                booking.booth_slot.event.name if booking.booth_slot else '',
-                booking.booth_slot.event.date.strftime('%Y-%m-%d') if booking.booth_slot and booking.booth_slot.event else '',
-                booking.booth_slot.event.location if booking.booth_slot and booking.booth_slot.event else '',
-                booking.booth_slot.spot_number if booking.booth_slot else '',
+                booking.event.name if booking.event else '',
+                booking.event.date.strftime('%Y-%m-%d') if booking.event else '',
+                booking.event.location if booking.event else '',
+                '',  # Booth slot no longer used
             ]
             
             # Vendor-specific fields

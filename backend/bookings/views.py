@@ -7,11 +7,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import stripe
 import json
-from .models import Event, BoothSlot, GeneralVendorBooking, FoodTruckBooking
+from .models import Event, GeneralVendorBooking, FoodTruckBooking
 from .serializers import (
     EventSerializer,
     EventListSerializer,
-    BoothSlotSerializer,
     GeneralVendorBookingSerializer,
     FoodTruckBookingSerializer,
     ReserveBoothSlotSerializer
@@ -20,13 +19,13 @@ from .serializers import (
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-def create_booking_from_serializer(serializer, booth_slot):
+def create_booking_from_serializer(serializer, event):
     """Helper function to create the appropriate booking model based on vendor_type"""
     vendor_type = serializer.validated_data.get('vendor_type', 'regular')
     data = serializer.validated_data
     
     common_fields = {
-        'booth_slot': booth_slot,
+        'event': event,
         'first_name': data['first_name'],
         'last_name': data['last_name'],
         'vendor_email': data['vendor_email'],
@@ -78,106 +77,19 @@ class EventViewSet(viewsets.ReadOnlyModelViewSet):
         events = Event.objects.all()
         calendar_data = []
         for event in events:
-            available_count = event.booth_slots.filter(is_available=True).count()
             calendar_data.append({
                 'id': event.id,
                 'name': event.name,
                 'date': event.date,
-                'available_slots': available_count,
+                'available_slots': event.number_of_spots,
             })
         return Response(calendar_data)
 
 
-@api_view(['GET'])
-def booth_slot_detail(request, pk):
-    """Get details of a specific booth slot"""
-    booth_slot = get_object_or_404(BoothSlot, pk=pk)
-    serializer = BoothSlotSerializer(booth_slot)
-    return Response(serializer.data)
-
-@api_view(['POST'])
-def reserve_booth_slot(request, pk):
-    """Reserve a booth slot and create Stripe checkout session"""
-    booth_slot = get_object_or_404(BoothSlot, pk=pk)
-    
-    if not booth_slot.is_available:
-        return Response(
-            {'error': 'This booth slot is no longer available'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    serializer = ReserveBoothSlotSerializer(data=request.data)
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    # Create booking (unpaid) - uses appropriate model based on vendor_type
-    booking = create_booking_from_serializer(serializer, booth_slot)
-
-    # Get frontend URL from request origin or fallback to settings
-    origin = request.headers.get('Origin')
-    if origin and ('vercel.app' in origin or 'localhost' in origin or '127.0.0.1' in origin):
-        frontend_url = origin.rstrip('/')
-    else:
-        frontend_url = settings.FRONTEND_BASE_URL.rstrip('/')
-    
-    print(f"DEBUG: Using frontend URL for booth slot: {frontend_url}")
-
-    # Create Stripe Checkout Session
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': f'{booth_slot.event.name} - Booth Spot {booth_slot.spot_number}',
-                        'description': f'Event: {booth_slot.event.name}\nDate: {booth_slot.event.date}\nLocation: {booth_slot.event.location}',
-                    },
-                    'unit_amount': int(booth_slot.event.price * 100),  # Convert to cents
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{frontend_url}/checkout/cancel",
-            metadata={
-                'booking_id': str(booking.id),
-                'booth_slot_id': str(booth_slot.id),
-            },
-        )
-
-        booking.stripe_payment_id = checkout_session.id
-        booking.save(update_fields=['stripe_payment_id'])
-
-        return Response({
-            'checkout_url': checkout_session.url,
-            'session_id': checkout_session.id,
-        })
-
-    except stripe.error.StripeError as e:
-        booking.delete()  # Clean up booking if Stripe fails
-        return Response(
-            {'error': f'Stripe error: {str(e)}'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-
 @api_view(['POST'])
 def reserve_event_spot(request, event_id):
-    """Reserve any available spot for an event (auto-assigns a booth slot)"""
+    """Reserve a spot for an event"""
     event = get_object_or_404(Event, pk=event_id)
-    
-    # Find first available booth slot for this event
-    booth_slot = BoothSlot.objects.filter(
-        event=event,
-        is_available=True
-    ).first()
-    
-    if not booth_slot:
-        return Response(
-            {'error': 'No available spots for this event'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
     serializer = ReserveBoothSlotSerializer(data=request.data)
     if not serializer.is_valid():
@@ -195,8 +107,8 @@ def reserve_event_spot(request, event_id):
         price_amount = 35.00
         vendor_type_label = 'General Vendor'
     
-    # Create booking (unpaid) with auto-assigned slot - uses appropriate model
-    booking = create_booking_from_serializer(serializer, booth_slot)
+    # Create booking (unpaid) - uses appropriate model
+    booking = create_booking_from_serializer(serializer, event)
     
     # Create Stripe Checkout Session with manual capture
     if not settings.STRIPE_SECRET_KEY:
@@ -239,7 +151,6 @@ def reserve_event_spot(request, event_id):
             cancel_url=f"{frontend_url}/checkout/cancel",
             metadata={
                 'booking_id': str(booking.id),
-                'booth_slot_id': str(booth_slot.id),
             },
         )
 
@@ -424,11 +335,6 @@ def stripe_webhook(request):
                         booking.is_paid = True
                         booking.stripe_payment_intent_id = payment_intent_id
                         booking.save(update_fields=['is_paid', 'stripe_payment_intent_id'])
-                        
-                        # Mark booth slot as unavailable
-                        booth_slot = booking.booth_slot
-                        booth_slot.is_available = False
-                        booth_slot.save()
                     
                     print(f"DEBUG: Processed {len(bookings)} bookings for multi-date payment")
                 else:
@@ -445,10 +351,6 @@ def stripe_webhook(request):
                     if booking:
                         booking.is_paid = True
                         booking.save(update_fields=['is_paid'])
-                        
-                        booth_slot = booking.booth_slot
-                        booth_slot.is_available = False
-                        booth_slot.save()
                     
             else:
                 # Fallback: single booking by payment intent ID - check both models
@@ -464,10 +366,6 @@ def stripe_webhook(request):
                 if booking:
                     booking.is_paid = True
                     booking.save(update_fields=['is_paid'])
-                    
-                    booth_slot = booking.booth_slot
-                    booth_slot.is_available = False
-                    booth_slot.save()
                 
         except (GeneralVendorBooking.DoesNotExist, FoodTruckBooking.DoesNotExist):
             # Payment intent not found in our system - might be from another source
@@ -509,18 +407,6 @@ def reserve_multi_event_spots(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Find first available booth slot
-        booth_slot = BoothSlot.objects.filter(
-            event=event,
-            is_available=True
-        ).first()
-        
-        if not booth_slot:
-            return Response(
-                {'error': f'No available spots for date {date_str}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
         # Parse reservation data
         serializer = ReserveBoothSlotSerializer(data=reservation.get('reservationData', {}))
         if not serializer.is_valid():
@@ -536,7 +422,6 @@ def reserve_multi_event_spots(request):
         
         bookings.append({
             'event': event,
-            'booth_slot': booth_slot,
             'reservation_data': serializer.validated_data,
             'price': price_per_day
         })
@@ -550,7 +435,7 @@ def reserve_multi_event_spots(request):
             if not reservation_serializer.is_valid():
                 # Should not happen as we validated earlier, but handle gracefully
                 continue
-            booking = create_booking_from_serializer(reservation_serializer, booking_info['booth_slot'])
+            booking = create_booking_from_serializer(reservation_serializer, booking_info['event'])
             created_bookings.append(booking)
     
     except Exception as e:

@@ -35,8 +35,8 @@ class GoogleAppsScriptSync:
         
         # Common fields
         data = {
-            'event_name': booking.booth_slot.event.name if booking.booth_slot else '',
-            'event_date': booking.booth_slot.event.date.strftime('%Y-%m-%d') if booking.booth_slot and booking.booth_slot.event else '',
+            'event_name': booking.event.name if booking.event else '',
+            'event_date': booking.event.date.strftime('%Y-%m-%d') if booking.event else '',
             'first_name': booking.first_name or '',
             'last_name': booking.last_name or '',
             'preferred_name': booking.preferred_name or '',
@@ -45,7 +45,7 @@ class GoogleAppsScriptSync:
             'phone': booking.phone or '',
             'business_name': booking.business_name or '',
             'instagram': booking.instagram or '',
-            'booth_slot': booking.booth_slot.spot_number if booking.booth_slot else '',
+            'booth_slot': '',  # No longer used
             'price_range': booking.price_range or '',
             'social_media_consent': booking.social_media_consent or '',
             'photo_consent': booking.photo_consent or '',

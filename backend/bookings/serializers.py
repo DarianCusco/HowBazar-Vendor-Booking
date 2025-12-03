@@ -1,34 +1,17 @@
 from rest_framework import serializers
-from .models import Event, BoothSlot, GeneralVendorBooking, FoodTruckBooking
-
-
-class BoothSlotSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = BoothSlot
-        fields = ['id', 'event', 'spot_number', 'is_available']
+from .models import Event, GeneralVendorBooking, FoodTruckBooking
 
 
 class EventSerializer(serializers.ModelSerializer):
-    booth_slots = BoothSlotSerializer(many=True, read_only=True)
-    available_slots_count = serializers.SerializerMethodField()
-
     class Meta:
         model = Event
-        fields = ['id', 'name', 'date', 'location', 'description', 'price', 'number_of_spots', 'booth_slots', 'available_slots_count']
-
-    def get_available_slots_count(self, obj):
-        return obj.booth_slots.filter(is_available=True).count()
+        fields = ['id', 'name', 'date', 'location', 'description', 'price', 'number_of_spots']
 
 
 class EventListSerializer(serializers.ModelSerializer):
-    available_slots_count = serializers.SerializerMethodField()
-
     class Meta:
         model = Event
-        fields = ['id', 'name', 'date', 'location', 'description', 'price', 'number_of_spots', 'available_slots_count']
-
-    def get_available_slots_count(self, obj):
-        return obj.booth_slots.filter(is_available=True).count()
+        fields = ['id', 'name', 'date', 'location', 'description', 'price', 'number_of_spots']
 
 
 class GeneralVendorBookingSerializer(serializers.ModelSerializer):
