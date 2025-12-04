@@ -78,7 +78,10 @@ class EventViewSet(viewsets.ReadOnlyModelViewSet):
         events = Event.objects.all()
         calendar_data = []
         for event in events:
-            available_count = event.booth_slots.filter(is_available=True).count()
+            # Use the total number_of_spots defined on the Event,
+            # so the frontend count is tied directly to that field
+            # and does not auto-decrease based on bookings.
+            available_count = event.number_of_spots
             calendar_data.append({
                 'id': event.id,
                 'name': event.name,
