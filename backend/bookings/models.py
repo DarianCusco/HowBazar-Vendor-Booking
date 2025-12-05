@@ -19,38 +19,24 @@ class Event(models.Model):
         return f"{self.name} - {self.date}"
 
     def save(self, *args, **kwargs):
-        is_new = self.pk is None
-        old_number_of_spots = None
-        
-        if not is_new:
-            try:
-                old_event = Event.objects.get(pk=self.pk)
-                old_number_of_spots = old_event.number_of_spots
-            except Event.DoesNotExist:
-                pass
-        
+        # SIMPLIFY - Just save, don't auto-create booth slots
+        # number_of_spots now means "available spots" not "total capacity"
         super().save(*args, **kwargs)
         
-        # Create or update booth slots based on number_of_spots
-        current_slots = self.booth_slots.count()
-        target_slots = self.number_of_spots
-        
-        if is_new or old_number_of_spots != target_slots:
-            if target_slots > current_slots:
-                # Add new slots
-                for i in range(current_slots + 1, target_slots + 1):
-                    self.booth_slots.create(
-                        spot_number=f"{i:03d}",
-                        is_available=True
-                    )
-            elif target_slots < current_slots:
-                # Remove excess slots (only if they're not booked)
-                excess_slots = self.booth_slots.order_by('spot_number')[target_slots:]
-                for slot in excess_slots:
-                    if slot.is_available:
-                        slot.delete()
-                    # If slot is booked, we keep it but don't count it as available
-
+        # Optional: You can still create booth slots if needed for tracking
+        # But they won't be tied to number_of_spots anymore
+        # Create booth slots only if none exist
+        if self.booth_slots.count() == 0 and self.number_of_spots > 0:
+            for i in range(1, self.number_of_spots + 1):
+                self.booth_slots.create(
+                    spot_number=f"{i:03d}",
+                    is_available=True
+                )
+    
+    @property
+    def available_spots_count(self):
+        # Now just return number_of_spots since that's the available count
+        return self.number_of_spots
 
 class BoothSlot(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='booth_slots')

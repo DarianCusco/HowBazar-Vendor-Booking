@@ -99,7 +99,7 @@ export default function Home() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   
   // Multi-selection state
-  const [selectionMode, setSelectionMode] = useState<'single' | 'multi'>('single');
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multi'>('multi');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [showMobileSummary, setShowMobileSummary] = useState(false);
 
@@ -287,8 +287,8 @@ export default function Home() {
   const getAvailableSlotsForDate = (date: Date | null) => {
     if (!date) return 0;
     const event = getEventForDate(date);
-    return event ? event.available_slots : 26;
-  };
+    return event ? event.available_slots : 0;
+};
 
   if (loading) {
     return (
@@ -569,22 +569,22 @@ export default function Home() {
                       {/* Availability */}
                       {isEventDay && (
                         <div className={`text-[10px] sm:text-xs font-bold text-center ${
-                          hasAvailableSpots 
-                            ? themeConfig 
-                              ? `bg-gradient-to-r ${themeConfig.color} bg-clip-text text-transparent`
-                              : 'text-green-600'
-                            : 'text-red-500'
+                            hasAvailableSpots 
+                                ? themeConfig 
+                                    ? `bg-gradient-to-r ${themeConfig.color} bg-clip-text text-transparent`
+                                    : 'text-green-600'
+                                : 'text-red-500 bg-red-50 px-2 py-1 rounded-full font-bold'
                         }`}>
-                          {hasAvailableSpots ? (
-                            <>
-                              <span className="sm:hidden">{availableSlots}</span>
-                              <span className="hidden sm:inline">{availableSlots} spots</span>
-                            </>
-                          ) : (
-                            <span className="text-[9px] sm:text-xs">SOLD OUT</span>
-                          )}
+                            {hasAvailableSpots ? (
+                                <>
+                                    <span className="sm:hidden">{availableSlots}</span>
+                                    <span className="hidden sm:inline">{availableSlots} spots</span>
+                                </>
+                            ) : (
+                                <span className="text-[10px] sm:text-xs font-extrabold">SOLD OUT</span>
+                            )}
                         </div>
-                      )}
+                    )}
 
                       {/* Vendor type indicators */}
                       {isEventDay && (

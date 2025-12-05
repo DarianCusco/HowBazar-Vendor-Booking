@@ -4,17 +4,13 @@ from .models import Event, BoothSlot, GeneralVendorBooking, FoodTruckBooking
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['name', 'date', 'location', 'price', 'number_of_spots', 'available_spots_count', 'created_at']
+    # Remove available_spots_count from list_display since it's the same as number_of_spots
+    list_display = ['name', 'date', 'location', 'price', 'number_of_spots', 'created_at']
     list_filter = ['date', 'created_at']
     search_fields = ['name', 'location']
     date_hierarchy = 'date'
     fields = ['name', 'date', 'location', 'description', 'price', 'number_of_spots']
-    readonly_fields = []
-    
-    def available_spots_count(self, obj):
-        return obj.booth_slots.filter(is_available=True).count()
-    available_spots_count.short_description = 'Available Spots'
-
+    readonly_fields = ['created_at', 'updated_at']
 
 @admin.register(BoothSlot)
 class BoothSlotAdmin(admin.ModelAdmin):
