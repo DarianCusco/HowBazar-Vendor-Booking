@@ -17,8 +17,7 @@ class EventSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'date', 'location', 'description', 'price', 'number_of_spots', 'booth_slots', 'available_slots_count']
 
     def get_available_slots_count(self, obj):
-        # Tie the "available" count directly to the total number_of_spots
-        # so it no longer auto-decreases based on bookings.
+        # Return number_of_spots directly since that's now the available count
         return obj.number_of_spots
 
 
@@ -30,8 +29,7 @@ class EventListSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'date', 'location', 'description', 'price', 'number_of_spots', 'available_slots_count']
 
     def get_available_slots_count(self, obj):
-        # Tie the "available" count directly to the total number_of_spots
-        # so it no longer auto-decreases based on bookings.
+        # Return number_of_spots directly since that's now the available count
         return obj.number_of_spots
 
 
