@@ -92,6 +92,7 @@ export default function MultiDateBookingPage() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [selectedVendorType, setSelectedVendorType] = useState<VendorType>(null);
   const [selectedDates, setSelectedDates] = useState<DateInfo[]>([]);
+  const [showIndemnificationModal, setShowIndemnificationModal] = useState(false);
   const [formData, setFormData] = useState({
     // Common fields
     firstName: '',
@@ -1057,15 +1058,139 @@ export default function MultiDateBookingPage() {
                 </div>
 
                 {/* Indemnification Agreement */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+                <div 
+                  className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200 cursor-pointer hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100 transition-all duration-200"
+                  onClick={() => setShowIndemnificationModal(true)}
+                >
                   <h4 className="font-semibold text-purple-800 mb-2 text-sm sm:text-base">Indemnification Agreement</h4>
                   <p className="text-purple-700 text-xs sm:text-sm">
-                    By submitting this form, you agree to indemnify and hold harmless the City, its representatives, and event organizers from any claims, damages, or liabilities arising from your participation as a vendor at the market for all selected dates.
+                    By submitting this form, you agree to indemnify and hold harmless the City, its representatives, and event organizers from any claims, damages, or liabilities arising from your participation as a vendor at the market.
                   </p>
-                  <p className="text-purple-600 text-xs mt-2">
-                    (If you'd like to read the full indemnification clause, click here)
+                  <p className="text-purple-600 text-xs mt-2 flex items-center">
+                    <span className="mr-1">📄</span> Click here to read the full indemnification clause
                   </p>
                 </div>
+                {/* Indemnification Modal */}
+                {showIndemnificationModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                      {/* Modal Header */}
+                      <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 text-center">
+                        <h3 className="text-2xl font-bold text-white mb-2">Indemnification and Insurance Acknowledgment</h3>
+                        <p className="text-purple-100 text-sm">Please read the following agreement carefully</p>
+                      </div>
+                      
+                      {/* Modal Content */}
+                      <div className="flex-1 overflow-y-auto p-6">
+                        <div className="prose prose-sm sm:prose max-w-none text-gray-700">
+                          <p className="mb-4">
+                            By submitting this application, the vendor (including its agents, employees, subcontractors, or representatives) agrees to indemnify, defend, and hold harmless the City of Gainesville, its elected and appointed officials, officers, employees, and agents ("Indemnified Parties") from and against any and all liabilities, claims, demands, damages, losses, penalties, judgments, suits, and costs (including attorneys' fees for trial and appeal), whether or not a lawsuit is filed, arising out of or connected in any way—directly or indirectly—with:
+                          </p>
+                          
+                          <ul className="space-y-3 mb-6">
+                            <li className="flex items-start">
+                              <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">1</div>
+                              <span>Vendor's participation in the Holiday Market;</span>
+                            </li>
+                            <li className="flex items-start">
+                              <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">2</div>
+                              <span>Any act, error, omission, or failure to comply with applicable laws or regulations by the vendor or its representatives;</span>
+                            </li>
+                            <li className="flex items-start">
+                              <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 mt-0.5">3</div>
+                              <span>Any negligent, reckless, or intentional conduct by the vendor or its representatives.</span>
+                            </li>
+                          </ul>
+                          
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg mb-6 border border-blue-200">
+                            <p className="font-semibold text-blue-800 mb-2">📝 Important Note:</p>
+                            <p className="text-blue-700">
+                              This obligation applies regardless of whether such claims are also due in part to the fault of the Indemnified Parties.
+                            </p>
+                            <p className="text-blue-700 mt-2">
+                              Creative Cultural Consulting Group ("Contractor") is the contracted entity managing vendor coordination for this event.
+                            </p>
+                          </div>
+                          
+                          <h4 className="text-xl font-bold text-gray-800 mb-4 mt-8 pb-2 border-b border-gray-200">📋 Insurance Requirements for Food Trucks</h4>
+                          <p className="mb-4">
+                            Additionally, all food truck vendors (i.e., those preparing food on site) are required to provide proof to the Contractor of the following insurance prior to the event:
+                          </p>
+                          
+                          <div className="space-y-4 mb-6">
+                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                              <h5 className="font-bold text-green-800 mb-2 flex items-center">
+                                <span className="mr-2">🛡️</span> General Liability Insurance
+                              </h5>
+                              <p className="text-green-700 text-sm mb-3">with limits of at least:</p>
+                              <ul className="space-y-2 text-green-800">
+                                <li className="flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  $1,000,000 General Aggregate
+                                </li>
+                                <li className="flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  $1,000,000 Products/Completed Operations Aggregate
+                                </li>
+                                <li className="flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  $1,000,000 Personal & Advertising Injury
+                                </li>
+                                <li className="flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  $1,000,000 per Occurrence
+                                </li>
+                                <li className="flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  $50,000 Fire Damage Liability
+                                </li>
+                                <li className="flex items-center">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                                  $5,000 Medical Expenses
+                                </li>
+                              </ul>
+                            </div>
+                            
+                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
+                              <h5 className="font-bold text-amber-800 mb-2 flex items-center">
+                                <span className="mr-2">🚚</span> Automobile Liability
+                              </h5>
+                              <p className="text-amber-700">
+                                $1,000,000 per occurrence (only if business vehicles are used)
+                              </p>
+                            </div>
+                            
+                            <div className="bg-gradient-to-r from-red-50 to-pink-50 p-4 rounded-lg border border-red-200">
+                              <h5 className="font-bold text-red-800 mb-2 flex items-center">
+                                <span className="mr-2">👷</span> Workers' Compensation Insurance
+                              </h5>
+                              <p className="text-red-700">
+                                $100,000 per accident — or written confirmation that it does not apply to the vendor's business
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-5 rounded-xl border border-purple-300 mt-8">
+                            <p className="font-bold text-purple-800 text-center text-lg mb-2">✅ Final Acknowledgement</p>
+                            <p className="text-purple-700 text-center">
+                              By completing this application, the vendor affirms that they have read, understood, and agreed to this indemnification obligation and, if applicable, the insurance requirements.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Modal Footer */}
+                      <div className="border-t border-gray-200 p-4 sm:p-6 flex justify-center">
+                        <button
+                          onClick={() => setShowIndemnificationModal(false)}
+                          className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                        >
+                          I Understand & Agree
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Footer */}
