@@ -156,7 +156,7 @@ def reserve_booth_slot(request, pk):
                 },
                 'quantity': 1,
             }],
-            
+            allow_promotion_code = True,
             mode='payment',
             success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/checkout/cancel",
@@ -255,6 +255,7 @@ def reserve_event_spot(request, event_id):
             payment_intent_data={
                 'capture_method': 'manual',  # Requires manual capture/approval
             },
+            allow_promotion_code = True,
             success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/checkout/cancel",
             metadata={
@@ -668,7 +669,7 @@ def reserve_multi_event_spots(request):
             payment_intent_data={
                 'capture_method': 'manual',  # Requires manual capture/approval
             },
-            
+            allow_promotion_code = True,
             success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/checkout/cancel",
             metadata={
@@ -879,7 +880,7 @@ def reserve_booth_slot(request, pk):
                 },
                 'quantity': 1,
             }],
-            
+            allow_promotion_code = True,
             mode='payment',
             success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/checkout/cancel",
@@ -974,7 +975,7 @@ def reserve_event_spot(request, event_id):
                 },
                 'quantity': 1,
             }],
-            
+            allow_promotion_code = True,
             mode='payment',
             payment_intent_data={
                 'capture_method': 'manual',  # Requires manual capture/approval
@@ -1377,7 +1378,7 @@ def reserve_multi_event_spots(request):
             payment_intent_data={
                 'capture_method': 'manual',  # Requires manual capture/approval
             },
-            
+            allow_promotion_code = True,
             success_url=f"{frontend_url}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{frontend_url}/checkout/cancel",
             metadata={
