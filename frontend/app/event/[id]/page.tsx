@@ -274,7 +274,7 @@ export default function EventPage() {
     );
   }
 
-  const availableSlots = event.booth_slots?.filter(slot => slot.is_available) || [];
+  const availableSlotsCount = event.available_slots_count || 0;
   const price = event.price ? parseFloat(String(event.price)) : 0;
   const displayPrice = isNaN(price) ? 0 : price;
   const themeConfig = getEventTheme(event.name);
@@ -386,7 +386,7 @@ export default function EventPage() {
               )}
 
               {/* Availability Section */}
-              {availableSlots.length === 0 ? (
+              {availableSlotsCount === 0 ? (
                 <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl sm:rounded-2xl p-6 sm:p-8 text-center transform transition-all duration-300">
                   <div className="text-4xl sm:text-5xl mb-4">😢</div>
                   <p className="text-red-800 font-bold text-xl sm:text-2xl mb-2">
@@ -409,7 +409,7 @@ export default function EventPage() {
                         <div className="text-3xl sm:text-4xl">{themeConfig.icon}</div>
                         <div>
                           <p className="text-xl sm:text-2xl font-bold text-gray-800 mb-1">
-                            {availableSlots.length} spot{availableSlots.length !== 1 ? 's' : ''} available
+                            {availableSlotsCount} spot{availableSlotsCount !== 1 ? 's' : ''} available
                           </p>
                           <p className="text-gray-600 text-sm sm:text-base">
                             Choose between Vendor or Food Truck
@@ -569,7 +569,7 @@ export default function EventPage() {
                 }`}>
                     ${selectedVendorType === 'regular' ? '35' : '100'}
                   </p>
-                  <p className="text-sm font-bold text-gray-500">{availableSlots.length} left</p>
+                  <p className="text-sm font-bold text-gray-500">{availableSlotsCount} left</p>
                 </div>
               </div>
               
@@ -583,7 +583,7 @@ export default function EventPage() {
                 }`}>
                     ${selectedVendorType === 'regular' ? '35' : '100'}
                   </p>
-                  <p className="text-xs text-gray-500">{availableSlots.length} spots left</p>
+                  <p className="text-xs text-gray-500">{availableSlotsCount} spots left</p>
                 </div>
                 <div className={`text-sm font-semibold px-3 py-1 text-white rounded-lg ${
                   selectedVendorType === 'regular' 
