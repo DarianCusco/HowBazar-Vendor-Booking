@@ -187,17 +187,18 @@ def reserve_event_spot(request, event_id):
     """Reserve any available spot for an event (auto-assigns a booth slot)"""
     event = get_object_or_404(Event, pk=event_id)
     
+    # Check if event has available spots
+    if event.number_of_spots == 0:
+        return Response(
+            {'error': 'No available spots for this event'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
     # Find first available booth slot for this event
     booth_slot = BoothSlot.objects.filter(
         event=event,
         is_available=True
     ).first()
-    
-    if not booth_slot:
-        return Response(
-            {'error': 'No available spots for this event'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
     serializer = ReserveBoothSlotSerializer(data=request.data)
     if not serializer.is_valid():
@@ -565,17 +566,18 @@ def reserve_multi_event_spots(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check if event has available spots
+        if event.number_of_spots == 0:
+            return Response(
+                {'error': f'No available spots for date {date_str}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         # Find first available booth slot
         booth_slot = BoothSlot.objects.filter(
             event=event,
             is_available=True
         ).first()
-        
-        if not booth_slot:
-            return Response(
-                {'error': f'No available spots for date {date_str}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         # DECREASE SPOTS IMMEDIATELY (reserve on creation)
         if event.number_of_spots > 0:
@@ -911,17 +913,18 @@ def reserve_event_spot(request, event_id):
     """Reserve any available spot for an event (auto-assigns a booth slot)"""
     event = get_object_or_404(Event, pk=event_id)
     
+    # Check if event has available spots
+    if event.number_of_spots == 0:
+        return Response(
+            {'error': 'No available spots for this event'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
     # Find first available booth slot for this event
     booth_slot = BoothSlot.objects.filter(
         event=event,
         is_available=True
     ).first()
-    
-    if not booth_slot:
-        return Response(
-            {'error': 'No available spots for this event'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
 
     serializer = ReserveBoothSlotSerializer(data=request.data)
     if not serializer.is_valid():
@@ -1289,17 +1292,18 @@ def reserve_multi_event_spots(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check if event has available spots
+        if event.number_of_spots == 0:
+            return Response(
+                {'error': f'No available spots for date {date_str}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         # Find first available booth slot
         booth_slot = BoothSlot.objects.filter(
             event=event,
             is_available=True
         ).first()
-        
-        if not booth_slot:
-            return Response(
-                {'error': f'No available spots for date {date_str}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
         # Parse reservation data
         serializer = ReserveBoothSlotSerializer(data=reservation.get('reservationData', {}))
