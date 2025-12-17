@@ -827,6 +827,15 @@ def reserve_multi_event_spots(request):
             event=event,
             is_available=True
         ).first()
+
+        # If no booth slot exists but the event has spots, create one on-the-fly
+        if not booth_slot:
+            next_index = event.booth_slots.count() + 1
+            booth_slot = BoothSlot.objects.create(
+                event=event,
+                spot_number=f"{next_index:03d}",
+                is_available=True,
+            )
         
         # Parse reservation data
         serializer = ReserveBoothSlotSerializer(data=reservation.get('reservationData', {}))
@@ -852,6 +861,18 @@ def reserve_multi_event_spots(request):
     created_bookings = []
     try:
         for booking_info in bookings:
+            # Ensure we always have a booth_slot before creating a booking
+            booth_slot = booking_info.get('booth_slot')
+            if not booth_slot:
+                event = booking_info['event']
+                next_index = event.booth_slots.count() + 1
+                booth_slot = BoothSlot.objects.create(
+                    event=event,
+                    spot_number=f"{next_index:03d}",
+                    is_available=True,
+                )
+                booking_info['booth_slot'] = booth_slot
+
             # Create booking (unpaid) - create serializer for each to use helper function
             reservation_serializer = ReserveBoothSlotSerializer(data=booking_info['reservation_data'])
             if not reservation_serializer.is_valid():
