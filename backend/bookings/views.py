@@ -200,6 +200,16 @@ def reserve_event_spot(request, event_id):
         is_available=True
     ).first()
 
+    # If no booth slots exist but the event still has available spots,
+    # create a new booth slot on-the-fly so booking can proceed.
+    if not booth_slot:
+        next_index = event.booth_slots.count() + 1
+        booth_slot = BoothSlot.objects.create(
+            event=event,
+            spot_number=f"{next_index:03d}",
+            is_available=True,
+        )
+
     serializer = ReserveBoothSlotSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -578,6 +588,16 @@ def reserve_multi_event_spots(request):
             event=event,
             is_available=True
         ).first()
+
+        # If no booth slots exist but the event still has available spots,
+        # create a new booth slot on-the-fly so booking can proceed.
+        if not booth_slot:
+            next_index = event.booth_slots.count() + 1
+            booth_slot = BoothSlot.objects.create(
+                event=event,
+                spot_number=f"{next_index:03d}",
+                is_available=True,
+            )
         
         # DECREASE SPOTS IMMEDIATELY (reserve on creation)
         if event.number_of_spots > 0:
