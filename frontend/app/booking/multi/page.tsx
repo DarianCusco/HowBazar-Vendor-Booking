@@ -572,6 +572,7 @@ export default function MultiDateBookingPage() {
                   <p className="text-xs sm:text-sm text-gray-500 font-bold pt-4">
                     Please note that due to limited space you may not be approved for all, one, or none of your selected dates.
                     You will only be charged when and if your application is approved.
+                    If approved to vend, the space is secured, and there will be no refunds.
                   </p>
                 </div>
               </div>
