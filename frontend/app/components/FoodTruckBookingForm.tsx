@@ -1,0 +1,327 @@
+// components/FoodTruckBookingForm.tsx
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { VENDOR_CONFIG, getShortDate } from '@/lib/marketData';
+import { reserveMultiEventSpots } from '@/lib/api';
+
+interface FoodTruckBookingFormProps {
+  selectedDates: string[];
+  vendorType: 'food';
+  onBack: () => void;
+}
+
+export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack }: FoodTruckBookingFormProps) {
+  const router = useRouter();
+  const config = VENDOR_CONFIG[vendorType];
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    businessName: '',
+    email: '',
+    phone: '',
+    instagram: '',
+    cuisineType: '',
+    menuHighlights: '',
+    setupSize: '',
+    generator: '',
+    healthPermit: '',
+    specialRequests: '',
+    hearAboutUs: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const totalPrice = config.price * selectedDates.length;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setSubmitting(true);
+
+  try {
+    // Create properly typed reservations
+    const reservations = selectedDates.map(date => ({
+      eventDate: date,
+      reservationData: {
+        vendor_type: 'food' as const,  // Use const assertion for literal type
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        vendor_email: formData.email,
+        business_name: formData.businessName,
+        phone: formData.phone,
+        instagram: formData.instagram,
+        cuisine_type: formData.cuisineType,
+        food_items: formData.menuHighlights,
+        setup_size: formData.setupSize,
+        generator: formData.generator,
+        health_permit: formData.healthPermit,
+        notes: JSON.stringify({
+          specialRequests: formData.specialRequests,
+          hearAboutUs: formData.hearAboutUs,
+          selectedDates,
+        }),
+      },
+    }));
+
+    const result = await reserveMultiEventSpots(reservations);
+    window.location.href = result.checkout_url;
+  } catch (error) {
+    console.error('Booking error:', error);
+    alert('Something went wrong. Please try again.');
+    setSubmitting(false);
+  }
+};
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl p-6 sm:p-8"
+    >
+      <div className="flex items-center gap-3 mb-6">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={onBack}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          ←
+        </motion.button>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
+          Food Truck Application
+        </h2>
+      </div>
+
+      {/* Selected Dates Summary */}
+      <div className={`mb-8 p-4 ${config.lightBg} border ${config.border} rounded-xl`}>
+        <h3 className="font-semibold text-gray-700 mb-3">Selected Dates:</h3>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {selectedDates.map(date => (
+            <span key={date} className="bg-white px-3 py-1 rounded-full text-sm shadow-sm">
+              {getShortDate(date)}
+            </span>
+          ))}
+        </div>
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-gray-600">Total:</span>
+          <span className={`text-xl font-bold text-${config.color}-600`}>
+            ${totalPrice}
+          </span>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              First Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              placeholder="Your first name"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Last Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              placeholder="Your last name"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Business Name <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.businessName}
+            onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+            placeholder="Your food truck name"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              placeholder="your@email.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Phone <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="tel"
+              required
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              placeholder="(555) 123-4567"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Instagram Handle
+          </label>
+          <input
+            type="text"
+            value={formData.instagram}
+            onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+            placeholder="@yourfoodtruck"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cuisine Type <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.cuisineType}
+              onChange={(e) => setFormData({ ...formData, cuisineType: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              placeholder="Mexican, BBQ, Italian, etc."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Setup Size <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.setupSize}
+              onChange={(e) => setFormData({ ...formData, setupSize: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              placeholder="e.g., 16ft truck, 10x10 tent"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Menu Highlights <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            required
+            value={formData.menuHighlights}
+            onChange={(e) => setFormData({ ...formData, menuHighlights: e.target.value })}
+            rows={3}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+            placeholder="Describe your menu and specialties"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Do you have a generator? <span className="text-red-500">*</span>
+          </label>
+          <select
+            required
+            value={formData.generator}
+            onChange={(e) => setFormData({ ...formData, generator: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+          >
+            <option value="">Select an option</option>
+            <option value="yes">Yes, I have a quiet generator</option>
+            <option value="no">No, I need power hookup</option>
+            <option value="battery">I use battery/solar power</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Health Permit Number (if available)
+          </label>
+          <input
+            type="text"
+            value={formData.healthPermit}
+            onChange={(e) => setFormData({ ...formData, healthPermit: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+            placeholder="Your health permit number"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Special Requests or Notes
+          </label>
+          <textarea
+            value={formData.specialRequests}
+            onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
+            rows={2}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+            placeholder="Any special accommodations or requests?"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            How did you hear about us?
+          </label>
+          <select
+            value={formData.hearAboutUs}
+            onChange={(e) => setFormData({ ...formData, hearAboutUs: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+          >
+            <option value="">Select an option</option>
+            <option value="social">Social Media</option>
+            <option value="friend">Friend/Word of Mouth</option>
+            <option value="previous">Previous Vendor</option>
+            <option value="website">Website</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <motion.button
+          type="submit"
+          disabled={submitting}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className={`w-full py-4 bg-gradient-to-r ${config.gradient} text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50`}
+        >
+          {submitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Processing...
+            </span>
+          ) : (
+            `Pay $${totalPrice} & Submit Application`
+          )}
+        </motion.button>
+
+        <p className="text-xs text-gray-500 text-center mt-4">
+          By submitting, you agree to our terms and conditions. You'll only be charged if your application is approved.
+        </p>
+      </form>
+    </motion.div>
+  );
+}
