@@ -20,5 +20,5 @@ COPY . .
 EXPOSE 8000
 
 # Default command (can be overridden in docker-compose.yml)
-CMD python manage.py migrate && python manage.py runserver 0.0.0.0:$PORT
+CMD python manage.py migrate --noinput && gunicorn vendor_booking.wsgi --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-level debug --access-logfile -
 
