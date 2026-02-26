@@ -164,10 +164,10 @@ export default function SpringEventPage() {
                   <div className="text-3xl mb-2">🛍️</div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">Vendor</h3>
                   <div className="text-2xl font-bold text-green-600 mb-2">$35</div>
-                  <p className="text-sm text-gray-600 mb-2">30 vendor spots available</p>
+                  <p className="text-sm text-gray-600 mb-2">{event.regular_spots_total} vendor spots available</p>
                   {hasVendorSpots ? (
                     <span className="inline-block bg-green-500 text-white px-4 py-2 rounded-full text-sm">
-                      {availableSlots} spots left
+                      {event.regular_spots_available} spots left
                     </span>
                   ) : (
                     <span className="inline-block bg-gray-400 text-white px-4 py-2 rounded-full text-sm">
@@ -195,10 +195,10 @@ export default function SpringEventPage() {
                   <div className="text-3xl mb-2">🍔</div>
                   <h3 className="text-xl font-bold text-gray-800 mb-2">Food Truck</h3>
                   <div className="text-2xl font-bold text-yellow-600 mb-2">$50</div>
-                  <p className="text-sm text-gray-600 mb-2">4 food truck spots available</p>
+                  <p className="text-sm text-gray-600 mb-2">{event.food_spots_total} food truck spots available</p>
                   {hasFoodSpots ? (
                     <span className="inline-block bg-yellow-500 text-white px-4 py-2 rounded-full text-sm">
-                      {foodSlots} spots left
+                      {event.food_spots_available} spots left
                     </span>
                   ) : (
                     <span className="inline-block bg-gray-400 text-white px-4 py-2 rounded-full text-sm">
