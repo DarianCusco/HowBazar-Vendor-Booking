@@ -255,7 +255,7 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
                     
                     {isSelected && (
                       <div className={`absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r ${config.gradient} rounded-full flex items-center justify-center shadow-lg z-20`}>
-                        <span className="text-white text-xs font-bold">
+                        <span className="text-black text-xs font-bold">
                           {selectedDates.findIndex(d => d === dateStr) + 1}
                         </span>
                       </div>

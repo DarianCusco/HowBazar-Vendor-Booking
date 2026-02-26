@@ -128,7 +128,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
               required
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
               placeholder="First name"
             />
           </div>
@@ -141,7 +141,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
               required
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-black sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
               placeholder="Last name"
             />
           </div>
@@ -157,7 +157,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
             required
             value={formData.businessName}
             onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-black sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
             placeholder="Your business name"
           />
         </div>
@@ -173,7 +173,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-black sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
               placeholder="your@email.com"
             />
           </div>
@@ -186,7 +186,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
               required
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-black sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
               placeholder="(555) 123-4567"
             />
           </div>
@@ -201,7 +201,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
             type="text"
             value={formData.instagram}
             onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-black sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
             placeholder="@yourbusiness"
           />
         </div>
@@ -216,7 +216,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
             value={formData.productsSelling}
             onChange={(e) => setFormData({ ...formData, productsSelling: e.target.value })}
             rows={3}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-black sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
             placeholder="Describe your products, art, crafts, etc."
           />
         </div>
@@ -230,7 +230,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
             value={formData.specialRequests}
             onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
             rows={2}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-black sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
             placeholder="Any special accommodations or requests?"
           />
         </div>
@@ -243,7 +243,7 @@ export default function VendorBookingForm({ selectedDates, vendorType, onBack }:
           <select
             value={formData.hearAboutUs}
             onChange={(e) => setFormData({ ...formData, hearAboutUs: e.target.value })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm text-black sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
           >
             <option value="">Select an option</option>
             <option value="social">Social Media</option>

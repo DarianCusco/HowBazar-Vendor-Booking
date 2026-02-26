@@ -162,7 +162,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
               required
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
               placeholder="Your first name"
             />
           </div>
@@ -175,7 +175,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
               required
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
               placeholder="Your last name"
             />
           </div>
@@ -191,7 +191,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
             required
             value={formData.businessName}
             onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
             placeholder="Your food truck name"
           />
         </div>
@@ -207,7 +207,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
               required
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
               placeholder="your@email.com"
             />
           </div>
@@ -220,7 +220,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
               required
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
               placeholder="(555) 123-4567"
             />
           </div>
@@ -235,7 +235,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
             type="text"
             value={formData.instagram}
             onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
             placeholder="@yourfoodtruck"
           />
         </div>
@@ -251,7 +251,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
               required
               value={formData.cuisineType}
               onChange={(e) => setFormData({ ...formData, cuisineType: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
               placeholder="Mexican, BBQ, Italian, etc."
             />
           </div>
@@ -264,7 +264,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
               required
               value={formData.setupSize}
               onChange={(e) => setFormData({ ...formData, setupSize: e.target.value })}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
               placeholder="e.g., 16ft truck, 10x10 tent"
             />
           </div>
@@ -280,7 +280,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
             value={formData.menuHighlights}
             onChange={(e) => setFormData({ ...formData, menuHighlights: e.target.value })}
             rows={3}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+            className="w-full px-3 sm:px-4 py-2.5 text-black sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
             placeholder="Describe your menu and specialties"
           />
         </div>
@@ -294,7 +294,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
             required
             value={formData.generator}
             onChange={(e) => setFormData({ ...formData, generator: e.target.value })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base bg-white"
+            className="w-full px-3 sm:px-4 py-2.5 text-black sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base bg-white"
           >
             <option value="">Select an option</option>
             <option value="yes">Yes, I have a quiet generator</option>
@@ -312,7 +312,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
             type="text"
             value={formData.healthPermit}
             onChange={(e) => setFormData({ ...formData, healthPermit: e.target.value })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
             placeholder="Your health permit number"
           />
         </div>
@@ -326,7 +326,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
             value={formData.specialRequests}
             onChange={(e) => setFormData({ ...formData, specialRequests: e.target.value })}
             rows={2}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base"
             placeholder="Any special accommodations or requests?"
           />
         </div>
@@ -339,7 +339,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
           <select
             value={formData.hearAboutUs}
             onChange={(e) => setFormData({ ...formData, hearAboutUs: e.target.value })}
-            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base bg-white"
+            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-black border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-sm sm:text-base bg-white"
           >
             <option value="">Select an option</option>
             <option value="social">Social Media</option>
@@ -350,7 +350,7 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
           </select>
         </div>
 
-        {/* Submit Button */}
+        
         <motion.button
           type="submit"
           disabled={submitting}
