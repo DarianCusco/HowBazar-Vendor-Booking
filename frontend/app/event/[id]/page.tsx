@@ -76,8 +76,8 @@ export default function SpringEventPage() {
 
   const isTentative = marketInfo?.status === 'tentative';
   const isFestival = marketInfo?.status === 'big_festival';
-  const availableSlots = event.available_slots_count || 0;
-  const foodSlots = event.number_of_spots || 0;
+  const availableSlots = event.regular_spots_available || 0;
+  const foodSlots = event.food_spots_available || 0;
   const hasVendorSpots = availableSlots > 0;
   const hasFoodSpots = foodSlots > 0;
 
