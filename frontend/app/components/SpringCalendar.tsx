@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { SPRING_MARKET_DATES, getEventTime, getShortDate, VENDOR_CONFIG } from '@/lib/marketData';
+import { SPRING_MARKET_DATES, getShortDate, VENDOR_CONFIG } from '@/lib/marketData';
 import { getCalendarEvents, CalendarEvent } from '@/lib/api';
 
 import big from '@/app/assets/big.webp';
@@ -67,16 +67,17 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
     return events.find(e => e.date === dateStr);
   };
 
-const getAvailableSlots = (date: Date | null) => {
+  const getAvailableSlots = (date: Date | null) => {
   const event = getEventForDate(date);
   if (!event) return 0;
   
-  // Use the correct field based on vendor type
+  // Safely access the fields with fallbacks
   if (vendorType === 'regular') {
-    return event.available_slots_count || 0;
+    // Use regular_spots_available if available, otherwise fall back to old field
+    return event.regular_spots_available ?? event.available_slots_count ?? 0;
   } else {
-    // For food trucks, use the food truck specific field
-    return event.available_food_truck_spots || event.available_slots_count || 0;
+    // Use food_spots_available if available, otherwise fall back
+    return event.food_spots_available ?? event.available_food_truck_spots ?? event.available_slots_count ?? 0;
   }
 };
 
@@ -271,7 +272,7 @@ const getAvailableSlots = (date: Date | null) => {
                         {availableSlots > 0 ? (
                           <>
                             <span className="sm:hidden">{availableSlots}</span>
-                            <span className="hidden sm:inline">{availableSlots} spots</span>
+                            <span className="hidden sm:inline">{availableSlots} {vendorType === 'regular' ? 'vendor' : 'food'} spots</span>
                           </>
                         ) : (
                           <span className="text-red-600 font-bold">SOLD</span>
@@ -298,7 +299,7 @@ const getAvailableSlots = (date: Date | null) => {
           })}
         </div>
 
-        {/* Legend - Updated with better visibility */}
+        {/* Legend */}
         <div className="mt-6 flex flex-wrap gap-4 justify-center text-xs">
           <div className="flex items-center gap-2">
             <div className={`w-4 h-4 ${config.lightBg} border-2 ${config.border} rounded`}></div>
@@ -323,7 +324,6 @@ const getAvailableSlots = (date: Date | null) => {
       <AnimatePresence>
         {showBigModal && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -332,7 +332,6 @@ const getAvailableSlots = (date: Date | null) => {
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
             />
             
-            {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -341,18 +340,15 @@ const getAvailableSlots = (date: Date | null) => {
               className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
             >
               <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden pointer-events-auto">
-                {/* Full-width image header */}
                 <div className="relative h-48 w-full overflow-hidden">
                   <img 
                     src={bigTwo.src} 
                     alt="BIG Festival" 
                     className="w-full h-full object-cover"
                   />
-                  {/* Optional gradient overlay for text readability */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 </div>
                 
-                {/* Content */}
                 <div className="p-6">
                   <h3 className="text-2xl font-bold text-gray-800 mb-1">
                     BIG Festival Weekend! 🎉

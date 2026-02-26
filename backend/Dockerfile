@@ -20,5 +20,5 @@ COPY . .
 EXPOSE 8000
 
 # Default command (can be overridden in docker-compose.yml)
-CMD python manage.py runserver 0.0.0.0:8000
+CMD python manage.py migrate && python manage.py runserver 0.0.0.0:$PORT
 

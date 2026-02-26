@@ -7,11 +7,15 @@ export interface Event {
   date: string;
   location: string;
   description: string;
-  price: string;
-  number_of_spots: number;
-  available_slots_count: number;
-  food_truck_spots?: number; // Add food truck specific spots
-  available_food_truck_spots?: number;
+  regular_spots_total: number;
+  regular_spots_available: number;
+  food_spots_total: number;
+  food_spots_available: number;
+  regular_price: number;
+  food_price: number;
+  has_regular_spots: boolean;
+  has_food_spots: boolean;
+  total_spots_available: number;
   booth_slots?: BoothSlot[];
 }
 
@@ -19,19 +23,23 @@ export interface BoothSlot {
   id: number;
   event: number;
   spot_number: string;
+  slot_type: 'regular' | 'food';
   is_available: boolean;
-  slot_type: 'regular' | 'food'; // Add slot type
 }
 
 export interface CalendarEvent {
   id: number;
   name: string;
   date: string;
-  number_of_spots: number;
-  available_slots_count: number;
-  food_truck_spots?: number; // Add food truck spots
+  // Make new fields optional for backward compatibility
+  regular_spots_available?: number;
+  food_spots_available?: number;
+  regular_spots_total?: number;
+  food_spots_total?: number;
+  // Keep old fields for fallback
+  available_slots_count?: number;
   available_food_truck_spots?: number;
-  status?: 'available' | 'tentative' | 'big_festival'; // Add status from your market data
+  status?: 'available' | 'tentative' | 'big_festival';
 }
 
 export interface MultiDateReservation {
@@ -40,11 +48,11 @@ export interface MultiDateReservation {
 }
 
 export interface ReserveBoothSlotData {
-  vendor_type: 'regular' | 'food'; // Make this required
+  vendor_type: 'regular' | 'food';
   first_name: string;
   last_name: string;
   vendor_email: string;
-  business_name: string; // Make required
+  business_name?: string;
   phone: string;
   
   // Personal information (optional)
@@ -52,16 +60,16 @@ export interface ReserveBoothSlotData {
   pronouns?: string;
   instagram?: string;
   
-  // Consents (optional but recommended)
+  // Consents
   social_media_consent?: 'yes' | 'no';
   photo_consent?: 'yes' | 'no';
   noise_sensitive?: 'yes' | 'no' | 'no-preference';
   
-  // Booth sharing (optional)
+  // Booth sharing
   sharing_booth?: 'yes' | 'no';
   booth_partner_instagram?: string;
   
-  // Additional (optional)
+  // Additional
   price_range?: string;
   additional_notes?: string;
   
@@ -74,10 +82,10 @@ export interface ReserveBoothSlotData {
   food_items?: string;
   setup_size?: string;
   generator?: 'yes' | 'no' | 'battery';
-  health_permit?: string; // Add health permit field
+  health_permit?: string;
   
-  // Selected dates for multi-booking (optional)
-  selected_dates?: string[];
+  // Multi-date support
+  multi_date_group_id?: string;
   
   // Legacy notes field (for backward compatibility)
   notes?: string;
@@ -86,7 +94,38 @@ export interface ReserveBoothSlotData {
 export interface ReservationResponse {
   checkout_url: string;
   session_id: string;
+  booking_id?: number;
+  booking_ids?: number[];
+  total_price?: number;
+  num_dates?: number;
   message?: string;
+}
+
+export interface BookingStatusResponse {
+  status: 'success';
+  payment_status: 'pending' | 'authorized' | 'approved' | 'cancelled' | 'expired';
+  is_paid: boolean;
+  num_dates: number;
+  total_price: number;
+  first_name: string;
+  last_name: string;
+  business_name: string;
+  selected_dates: string[];
+  bookings: any[];
+}
+
+export interface AvailabilityResponse {
+  date: string;
+  regular: {
+    available: number;
+    total: number;
+    price: number;
+  };
+  food: {
+    available: number;
+    total: number;
+    price: number;
+  };
 }
 
 // Get all events
@@ -112,6 +151,15 @@ export async function getEvent(id: number): Promise<Event> {
   const response = await fetch(`${API_BASE_URL}/events/${id}/`);
   if (!response.ok) {
     throw new Error('Failed to fetch event');
+  }
+  return response.json();
+}
+
+// Get availability for a specific date
+export async function getEventAvailability(date: string): Promise<AvailabilityResponse> {
+  const response = await fetch(`${API_BASE_URL}/events/availability/${date}/`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch availability');
   }
   return response.json();
 }
@@ -170,9 +218,7 @@ export async function reserveMultiEventSpots(
     },
     body: JSON.stringify({ 
       reservations,
-      // Add metadata about the booking
       booking_type: 'multi_date',
-      total_dates: reservations.length
     }),
   });
 
@@ -197,60 +243,12 @@ export async function reserveMultiEventSpots(
   return response.json();
 }
 
-// Reserve a specific booth slot
-export async function reserveBoothSlot(
-  boothSlotId: number,
-  data: ReserveBoothSlotData
-): Promise<ReservationResponse> {
-  const response = await fetch(`${API_BASE_URL}/booth-slots/${boothSlotId}/reserve/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to reserve booth slot');
-  }
-
-  return response.json();
-}
-
-// Check payment status
-export async function checkPaymentStatus(sessionId: string): Promise<{
-  status: 'pending' | 'completed' | 'failed';
-  booking_id?: number;
-  message?: string;
-}> {
+// Check booking status by session ID
+export async function checkBookingStatus(sessionId: string): Promise<BookingStatusResponse> {
   const response = await fetch(`${API_BASE_URL}/bookings/status/${sessionId}/`);
   
   if (!response.ok) {
-    throw new Error('Failed to check payment status');
-  }
-  
-  return response.json();
-}
-
-// Get availability for a specific date range
-export async function getAvailability(
-  startDate: string,
-  endDate: string
-): Promise<{
-  dates: {
-    date: string;
-    regular_spots_available: number;
-    food_spots_available: number;
-    status: string;
-  }[];
-}> {
-  const response = await fetch(
-    `${API_BASE_URL}/events/availability/?start_date=${startDate}&end_date=${endDate}`
-  );
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch availability');
+    throw new Error('Failed to check booking status');
   }
   
   return response.json();

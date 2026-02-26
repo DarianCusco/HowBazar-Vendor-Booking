@@ -37,7 +37,7 @@ export const SPRING_MARKET_DATES = [
 export const VENDOR_CONFIG = {
   regular: {
     price: 35,
-    spotsPerDay: 30,
+    spotsPerDay: 24,
     color: 'green',
     gradient: 'from-green-500 to-emerald-500',
     lightBg: 'bg-green-50',
@@ -46,7 +46,7 @@ export const VENDOR_CONFIG = {
   },
   food: {
     price: 50,
-    spotsPerDay: 4,
+    spotsPerDay: 2,
     color: 'yellow',
     gradient: 'from-yellow-500 to-orange-500',
     lightBg: 'bg-yellow-50',
@@ -88,4 +88,26 @@ export const getShortDate = (dateString: string) => {
     day: 'numeric',
     timeZone: 'UTC'
   });
+};
+
+export const getDaySuffix = (dateString: string) => {
+  const date = new Date(dateString + 'T00:00:00Z');
+  const day = date.getUTCDate();
+  if (day > 3 && day < 21) return 'th';
+  switch (day % 10) {
+    case 1: return "st";
+    case 2: return "nd";
+    case 3: return "rd";
+    default: return "th";
+  }
+};
+
+export const getFullFormattedDate = (dateString: string) => {
+  const date = new Date(dateString + 'T00:00:00Z');
+  const month = date.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
+  const day = date.getUTCDate();
+  const suffix = getDaySuffix(dateString);
+  const year = date.getUTCFullYear();
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' });
+  return `${weekday}, ${month} ${day}${suffix}, ${year}`;
 };
