@@ -235,7 +235,7 @@ export default function SpringMarketLanding() {
                     </div>
                   </motion.div>
 
-                  {/* Food Truck Card - Updated fee to $100 */}
+                  {/* Food Truck Card*/}
                   <motion.div 
                     className="w-full sm:w-72 group cursor-pointer"
                     whileHover={{ scale: 1.05 }}
@@ -248,7 +248,7 @@ export default function SpringMarketLanding() {
                         <h2 className="text-2xl font-bold text-white mb-1 drop-shadow-md">Food Truck</h2>
                         <p className="text-white/80 text-sm mb-4">Cuisine • Street Food • Treats</p>
                         <div className="flex items-center justify-center gap-2 mb-3">
-                          <span className="text-3xl font-bold text-white">$100</span>
+                          <span className="text-3xl font-bold text-white">$75</span>
                           <span className="text-white/70 text-sm">/day</span>
                         </div>
                         <div className="bg-yellow-500/30 backdrop-blur-sm text-white text-sm py-2 px-4 rounded-full inline-block border border-yellow-400/40">
