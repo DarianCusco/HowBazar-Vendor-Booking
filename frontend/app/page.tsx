@@ -227,7 +227,7 @@ export default function SpringMarketLanding() {
                           <span className="text-white/70 text-sm">/day</span>
                         </div>
                         <div className="bg-green-500/30 backdrop-blur-sm text-white text-sm py-2 px-4 rounded-full inline-block border border-green-400/40">
-                          24 spots/day
+                          26 spots/day
                         </div>
                       </div>
                     </div>

@@ -37,7 +37,7 @@ export const SPRING_MARKET_DATES = [
 export const VENDOR_CONFIG = {
   regular: {
     price: 35,
-    spotsPerDay: 24,
+    spotsPerDay: 26,
     color: 'green',
     gradient: 'from-green-500 to-emerald-500',
     lightBg: 'bg-green-50',

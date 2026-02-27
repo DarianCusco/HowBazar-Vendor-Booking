@@ -272,7 +272,7 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
                         {availableSlots > 0 ? (
                           <>
                             <span className="sm:hidden">{availableSlots}</span>
-                            <span className="hidden sm:inline">{availableSlots} {vendorType === 'regular' ? 'vendor' : 'food'} spots</span>
+                            <span className="hidden sm:inline text-gray-600">{availableSlots} {vendorType === 'regular' ? 'vendor' : 'food'} spots</span>
                           </>
                         ) : (
                           <span className="text-red-600 font-bold">SOLD</span>
@@ -282,7 +282,7 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
 
                     {marketInfo.status === 'big_festival' && (
                       <div className="text-[10px] sm:text-xs font-bold text-purple-700 mt-1 text-center">
-                        <span className="hidden sm:inline">BIG Festival</span>
+                        <span className="hidden sm:inline">Big: Culture & Arts Festival</span>
                         <span className="sm:hidden">🎪</span>
                       </div>
                     )}
@@ -307,7 +307,7 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-purple-100 border-2 border-purple-300 rounded"></div>
-            <span className="text-gray-700 font-medium">BIG Festival</span>
+            <span className="text-gray-700 font-medium">Big: Culture & Arts Festival</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-yellow-100 border-2 border-yellow-300 rounded"></div>
@@ -340,26 +340,25 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
               className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
             >
               <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden pointer-events-auto">
-                <div className="relative h-48 w-full overflow-hidden">
+                <div className="relative h-38 w-full overflow-hidden">
                   <img 
                     src={bigTwo.src} 
                     alt="BIG Festival" 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 </div>
                 
                 <div className="p-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-1">
-                    BIG Festival Weekend! 🎉
+                  <h3 className="text-xl font-bold text-gray-800 mb-1">
+                    Big: Culture & Arts Festival Weeknend! 🎉
                   </h3>
                   
                   <p className="text-gray-600 mb-6">
                     {selectedBigDate && formatDisplayDate(selectedBigDate)}
                   </p>
                   
-                  <p className="text-gray-700 mb-6">
-                    Wanna join?{' '}
+                  <p className="text-gray-700 mb-6 text-center">
                     <a 
                       href="https://big.diondia.com/events/diondia/2050356" 
                       target="_blank" 
