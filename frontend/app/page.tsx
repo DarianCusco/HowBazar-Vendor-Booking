@@ -46,13 +46,12 @@ export default function SpringMarketLanding() {
   const containerRef = useRef<HTMLDivElement>(null);
   const customEasing = cubicBezier(0.43, 0.13, 0.23, 0.96);
 
-
   // Slower image transitions - increased to 8 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setDirection(Math.random() > 0.5 ? 'left' : 'right');
       setCurrentImageIndex((prev) => (prev + 1) % SPRING_IMAGES.length);
-    }, 8000); // Changed from 5000 to 8000 for slower transitions
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -94,8 +93,8 @@ export default function SpringMarketLanding() {
       opacity: 1,
       scale: 1,
       transition: {
-        duration: 2.0, // Increased from 1.2 to 2.0 for smoother transitions
-        ease: customEasing, // Custom cubic-bezier for smoother feel
+        duration: 2.0,
+        ease: customEasing,
       },
     },
     exit: (direction: 'left' | 'right') => ({
@@ -103,7 +102,7 @@ export default function SpringMarketLanding() {
       opacity: 0,
       scale: 0.9,
       transition: {
-        duration: 1.5, // Increased from 1.0 to 1.5
+        duration: 1.5,
         ease: customEasing,
       },
     }),
@@ -111,7 +110,7 @@ export default function SpringMarketLanding() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-yellow-50 to-pink-50 overflow-x-hidden">
-      {/* Floating Image Carousel Background */}
+      {/* Static Background Image (no rotation) */}
       <div 
         ref={containerRef}
         className="fixed inset-0 overflow-hidden pointer-events-none"
@@ -120,32 +119,23 @@ export default function SpringMarketLanding() {
           transition: 'transform 0.3s ease-out',
         }}
       >
-        <AnimatePresence mode="popLayout" custom={direction}>
-          <motion.div
-            key={currentImageIndex}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="absolute inset-0"
-          >
-            <Image
-              src={SPRING_IMAGES[currentImageIndex]}
-              alt="Spring Market"
-              fill
-              className="object-cover"
-              priority={currentImageIndex === 0}
-              quality={85}
-              sizes="100vw"
-              placeholder="blur"
-              blurDataURL={SPRING_IMAGES[currentImageIndex].blurDataURL}
-            />
-            
-            {/* Soft gradient overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-br from-black/30 via-transparent to-black/30" />
-          </motion.div>
-        </AnimatePresence>
+        {/* Single static image instead of rotating carousel */}
+        <div className="absolute inset-0">
+          <Image
+            src={DSC_0429} // Using the first image as static background
+            alt="Spring Market"
+            fill
+            className="object-cover"
+            priority
+            quality={85}
+            sizes="100vw"
+            placeholder="blur"
+            blurDataURL={DSC_0429.blurDataURL}
+          />
+          
+          {/* Soft gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-transparent to-black/40" />
+        </div>
         
         {/* Subtle floating circles */}
         <motion.div 
@@ -171,15 +161,17 @@ export default function SpringMarketLanding() {
         >
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              {/* Left side - Title and details */}
+              {/* Left side - Updated Title */}
               <div className="space-y-1">
                 <h1 className="text-4xl md:text-4xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                  Downtown Spring Market Series
+                  Downtown Market Series: Spring Edition
                 </h1>
                 <div className="flex flex-wrap items-center gap-3 text-white/90 drop-shadow-md">
-                  <span className="text-lg">🌸 March 6 - May 3, 2026</span>
-                  <span className="w-1 h-1 bg-white/60 rounded-full hidden sm:block" />
-                  <span className="text-base">🎸 Live Music • Good Vibes • Community</span>
+                  {/* New date container - matches Friday/Saturday style */}
+                  <div className="bg-black/30 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30 text-white text-base font-medium inline-flex items-center gap-2">
+                    <span className="text-green-300">🌸</span>
+                    <span>March 6 - May 3 | Every Weekend</span>
+                  </div>
                 </div>
               </div>
 
@@ -208,9 +200,19 @@ export default function SpringMarketLanding() {
                 transition={{ delay: 0.3, duration: 0.6 }}
                 className="w-full"
               >
+                {/* Moved "select your vendor type" above the cards */}
+                <motion.p 
+                  className="text-center text-white text-2xl mb-4 drop-shadow-lg font-medium tracking-wide"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  ✨ Select your vendor type to begin
+                </motion.p>
+
                 {/* Cards container - positioned at bottom third of screen */}
                 <div className="flex flex-col sm:flex-row gap-6 justify-center items-center max-w-3xl mx-auto mt-[30vh] sm:mt-[35vh]">
-                  {/* Vendor Card - Minimal, transparent */}
+                  {/* Vendor Card - Updated fee to $35 */}
                   <motion.div 
                     className="w-full sm:w-72 group cursor-pointer"
                     whileHover={{ scale: 1.05 }}
@@ -233,7 +235,7 @@ export default function SpringMarketLanding() {
                     </div>
                   </motion.div>
 
-                  {/* Food Truck Card - Minimal, transparent */}
+                  {/* Food Truck Card - Updated fee to $100 */}
                   <motion.div 
                     className="w-full sm:w-72 group cursor-pointer"
                     whileHover={{ scale: 1.05 }}
@@ -246,7 +248,7 @@ export default function SpringMarketLanding() {
                         <h2 className="text-2xl font-bold text-white mb-1 drop-shadow-md">Food Truck</h2>
                         <p className="text-white/80 text-sm mb-4">Cuisine • Street Food • Treats</p>
                         <div className="flex items-center justify-center gap-2 mb-3">
-                          <span className="text-3xl font-bold text-white">$50</span>
+                          <span className="text-3xl font-bold text-white">$100</span>
                           <span className="text-white/70 text-sm">/day</span>
                         </div>
                         <div className="bg-yellow-500/30 backdrop-blur-sm text-white text-sm py-2 px-4 rounded-full inline-block border border-yellow-400/40">
@@ -257,15 +259,7 @@ export default function SpringMarketLanding() {
                   </motion.div>
                 </div>
 
-                {/* Subtle instruction text */}
-                <motion.p 
-                  className="text-center text-white/60 text-sm mt-12 drop-shadow"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  ✨ Select your vendor type to begin
-                </motion.p>
+                {/* Removed the duplicate instruction text at the bottom */}
               </motion.div>
             ) : (
               <motion.div
