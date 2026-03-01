@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { VENDOR_CONFIG, getShortDate } from '@/lib/marketData';
+import { VENDOR_CONFIG, getShortDate, getFullFormattedDate } from '@/lib/marketData';
 import { reserveMultiEventSpots, ReserveBoothSlotData } from '@/lib/api';
 
 interface FoodTruckBookingFormProps {
@@ -94,61 +94,37 @@ export default function FoodTruckBookingForm({ selectedDates, vendorType, onBack
       </div>
 
       {/* Selected Dates Summary - Fixed visibility */}
-      <div className={`mb-6 sm:mb-8 p-4 sm:p-5 ${config.lightBg} border-2 ${config.border} rounded-xl sm:rounded-2xl shadow-sm`}>
-        <h3 className="font-semibold text-gray-800 text-base sm:text-lg mb-3">Selected Dates:</h3>
-        
-        {/* Mobile: Horizontal scroll for dates */}
-        <div className="overflow-x-auto pb-2 mb-3 -mx-1 px-1 hide-scrollbar">
-          <div className="flex gap-2 min-w-min">
-            {selectedDates.map(date => {
-              const displayDate = new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric',
-                timeZone: 'UTC'
-              });
-              const fullDate = new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', { 
-                weekday: 'short',
-                month: 'short', 
-                day: 'numeric',
-                timeZone: 'UTC'
-              });
-              return (
-                <div
-                  key={date}
-                  className="flex-shrink-0 bg-white px-3 py-2 rounded-lg border-2 border-gray-200 shadow-sm"
-                  title={fullDate}
-                >
-                  <span className="text-sm font-medium text-gray-800">{displayDate}</span>
+      <div className={`mb-6 sm:mb-8 p-4 sm:p-5 ${config.lightBg} border ${config.border} rounded-xl sm:rounded-2xl`}>
+              <h3 className="font-semibold text-gray-700 mb-3 text-sm sm:text-base">Selected Dates:</h3>
+              
+              {/* Horizontal scroll for dates on mobile */}
+              <div className="overflow-x-auto pb-2 -mx-1 px-1 hide-scrollbar">
+                <div className="flex gap-2 min-w-min">
+                  {selectedDates.map(date => (
+                    <div
+                      key={date}
+                      className="flex-shrink-0 bg-white px-3 py-2 rounded-lg sm:rounded-full text-xs sm:text-sm shadow-sm border border-gray-100"
+                      title={getFullFormattedDate(date)}
+                    >
+                      <span className="font-medium text-gray-800">{getShortDate(date)}</span>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-        </div>
-        
-        {/* Desktop: Wrap for dates */}
-        <div className="hidden sm:flex sm:flex-wrap gap-2 mb-4">
-          {selectedDates.map(date => {
-            const fullDate = new Date(date + 'T00:00:00Z').toLocaleDateString('en-US', { 
-              weekday: 'short',
-              month: 'short', 
-              day: 'numeric',
-              timeZone: 'UTC'
-            });
-            return (
-              <span key={date} className="bg-white px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 shadow-sm">
-                {fullDate}
-              </span>
-            );
-          })}
-        </div>
-        
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t-2 border-gray-200">
-          <span className="text-sm sm:text-base font-medium text-gray-600">Total for {selectedDates.length} {selectedDates.length === 1 ? 'day' : 'days'}:</span>
-          <span className={`text-xl sm:text-2xl font-bold text-${config.color}-600 bg-white px-4 py-1.5 rounded-lg border-2 ${config.border}`}>
-            ${totalPrice}
-          </span>
-        </div>
-      </div>
+              </div>
+              
+              {/* Total Price - Prominent */}
+              <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
+                <span className="text-sm sm:text-base text-gray-600">Total:</span>
+                <div className="text-right">
+                  <span className={`text-xl sm:text-2xl font-bold text-${config.color}-600`}>
+                    ${totalPrice}
+                  </span>
+                  <span className="text-xs text-gray-500 block sm:inline sm:ml-2 sm:text-sm">
+                    ({selectedDates.length} {selectedDates.length === 1 ? 'day' : 'days'} × ${config.price})
+                  </span>
+                </div>
+              </div>
+            </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         {/* Name Fields */}

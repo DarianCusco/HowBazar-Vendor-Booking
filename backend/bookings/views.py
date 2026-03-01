@@ -30,7 +30,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 def get_price_for_vendor_type(vendor_type, event=None):
     """Get price based on vendor type"""
     if vendor_type == 'food':
-        return 50.00  # Food truck price
+        return 75.00  # Food truck price
     return 35.00  # Regular vendor price
 
 

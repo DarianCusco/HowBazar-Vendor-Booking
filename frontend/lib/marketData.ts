@@ -45,7 +45,7 @@ export const VENDOR_CONFIG = {
     icon: '🛍️',
   },
   food: {
-    price: 100,
+    price: 75,
     spotsPerDay: 2,
     color: 'yellow',
     gradient: 'from-yellow-500 to-orange-500',
