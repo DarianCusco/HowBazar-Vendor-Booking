@@ -455,58 +455,11 @@ def stripe_webhook(request):
         print(f"ERROR: Invalid signature: {e}")
         return Response({'error': 'Invalid signature'}, status=400)
 
-    # Handle checkout.session.completed (payment made, awaiting capture)
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        session_id = session['id']
-        booking_ids = session['metadata'].get('booking_ids', '').split(',') if session['metadata'].get('booking_ids') else []
-        multi_date_group_id = session['metadata'].get('multi_date_group_id')
-        
-        print(f"WEBHOOK: checkout.session.completed - session={session_id}")
-        
-        # Update booking status to 'authorized'
-        if booking_ids and booking_ids[0]:
-            # Multi-date booking
-            for bid in booking_ids:
-                if not bid:
-                    continue
-                try:
-                    # Try both models
-                    booking = GeneralVendorBooking.objects.filter(id=bid).first()
-                    if not booking:
-                        booking = FoodTruckBooking.objects.filter(id=bid).first()
-                    
-                    if booking:
-                        booking.payment_status = 'authorized'
-                        booking.save(update_fields=['payment_status'])
-                        print(f"WEBHOOK: Updated booking {bid} to authorized")
-                except Exception as e:
-                    print(f"WEBHOOK: Error updating booking {bid}: {e}")
-        else:
-            # Single booking
-            booking_id = session['metadata'].get('booking_id')
-            if booking_id:
-                try:
-                    booking = GeneralVendorBooking.objects.filter(id=booking_id).first()
-                    if not booking:
-                        booking = FoodTruckBooking.objects.filter(id=booking_id).first()
-                    
-                    if booking:
-                        booking.payment_status = 'authorized'
-                        booking.save(update_fields=['payment_status'])
-                        print(f"WEBHOOK: Updated booking {booking_id} to authorized")
-                except Exception as e:
-                    print(f"WEBHOOK: Error updating booking {booking_id}: {e}")
-
-    # Handle payment_intent.succeeded (payment captured/approved)
     if event['type'] == 'payment_intent.succeeded':
         payment_intent = event['data']['object']
         payment_intent_id = payment_intent['id']
         
         print(f"WEBHOOK: payment_intent.succeeded - id={payment_intent_id}")
-        
-        # Find bookings by payment intent ID (in metadata) or by session
-        # This is where we actually decrease spot counts
         
         # Try to get metadata from the payment intent
         metadata = payment_intent.get('metadata', {})
@@ -537,12 +490,16 @@ def stripe_webhook(request):
                         if event.food_spots_available > 0:
                             event.food_spots_available = F('food_spots_available') - 1
                             event.save(update_fields=['food_spots_available'])
-                            print(f"WEBHOOK: Decreased food spots for {event.date} to {event.food_spots_available - 1}")
+                            # Refresh from DB to get the new value
+                            event.refresh_from_db()
+                            print(f"WEBHOOK: Decreased food spots for {event.date} to {event.food_spots_available}")
                     else:
                         if event.regular_spots_available > 0:
                             event.regular_spots_available = F('regular_spots_available') - 1
                             event.save(update_fields=['regular_spots_available'])
-                            print(f"WEBHOOK: Decreased regular spots for {event.date} to {event.regular_spots_available - 1}")
+                            # Refresh from DB to get the new value
+                            event.refresh_from_db()
+                            print(f"WEBHOOK: Decreased regular spots for {event.date} to {event.regular_spots_available}")
                     
                     # Mark booth slot as unavailable
                     if booking.booth_slot:
@@ -565,7 +522,8 @@ def stripe_webhook(request):
                 if booking:
                     booking.payment_status = 'approved'
                     booking.is_paid = True
-                    booking.save(update_fields=['payment_status', 'is_paid'])
+                    booking.stripe_payment_intent_id = payment_intent_id
+                    booking.save(update_fields=['payment_status', 'is_paid', 'stripe_payment_intent_id'])
                     
                     # Decrease available spots
                     event = booking.event
@@ -573,10 +531,14 @@ def stripe_webhook(request):
                         if event.food_spots_available > 0:
                             event.food_spots_available = F('food_spots_available') - 1
                             event.save(update_fields=['food_spots_available'])
+                            event.refresh_from_db()
+                            print(f"WEBHOOK: Decreased food spots for {event.date} to {event.food_spots_available}")
                     else:
                         if event.regular_spots_available > 0:
                             event.regular_spots_available = F('regular_spots_available') - 1
                             event.save(update_fields=['regular_spots_available'])
+                            event.refresh_from_db()
+                            print(f"WEBHOOK: Decreased regular spots for {event.date} to {event.regular_spots_available}")
                     
                     # Mark booth slot as unavailable
                     if booking.booth_slot:

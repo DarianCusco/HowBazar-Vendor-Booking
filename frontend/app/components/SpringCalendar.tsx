@@ -14,10 +14,11 @@ interface SpringCalendarProps {
   vendorType: 'regular' | 'food';
   onDatesSelected: (dates: string[]) => void;
   selectedDates: string[];
+  refreshTrigger?: number;
 }
 
-export default function SpringCalendar({ vendorType, onDatesSelected, selectedDates }: SpringCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(() => new Date(2026, 2, 1)); // March 2026
+export default function SpringCalendar({ vendorType, onDatesSelected, selectedDates, refreshTrigger = 0 }: SpringCalendarProps) {
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(2026, 2, 1));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -28,12 +29,14 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
 
   useEffect(() => {
     loadEvents();
-  }, []);
+  }, [refreshTrigger]);
 
   const loadEvents = async () => {
     try {
+      setLoading(true);
       const data = await getCalendarEvents();
       setEvents(data);
+      console.log('Calendar events refreshed:', data);
     } catch (err) {
       console.error('Failed to load events:', err);
     } finally {
@@ -68,18 +71,15 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
   };
 
   const getAvailableSlots = (date: Date | null) => {
-  const event = getEventForDate(date);
-  if (!event) return 0;
-  
-  // Safely access the fields with fallbacks
-  if (vendorType === 'regular') {
-    // Use regular_spots_available if available, otherwise fall back to old field
-    return event.regular_spots_available ?? event.available_slots_count ?? 0;
-  } else {
-    // Use food_spots_available if available, otherwise fall back
-    return event.food_spots_available ?? event.available_food_truck_spots ?? event.available_slots_count ?? 0;
-  }
-};
+    const event = getEventForDate(date);
+    if (!event) return 0;
+    
+    if (vendorType === 'regular') {
+      return event.regular_spots_available ?? event.available_slots_count ?? 0;
+    } else {
+      return event.food_spots_available ?? event.available_food_truck_spots ?? event.available_slots_count ?? 0;
+    }
+  };
 
   const handleDateClick = (date: Date | null) => {
     if (!date) return;
@@ -95,7 +95,6 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
     }
     
     if (marketInfo.status === 'tentative') {
-      // Just show a subtle indicator, no action needed
       return;
     }
     
@@ -114,7 +113,6 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
       const newDate = new Date(prev);
       newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
       
-      // Allow March through May 2026
       const year = newDate.getFullYear();
       const month = newDate.getMonth();
       if (year === 2026 && month >= 2 && month <= 4) return newDate;
@@ -162,7 +160,6 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
     }
   };
 
-  // Format date for display
   const formatDisplayDate = (dateStr: string) => {
     const date = new Date(dateStr + 'T00:00:00Z');
     return date.toLocaleDateString('en-US', {
@@ -174,10 +171,19 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
     });
   };
 
+  if (loading && events.length === 0) {
+    return (
+      <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl p-4 sm:p-6 border border-white/50">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl p-4 sm:p-6 border border-white/50">
-        {/* Month Navigation */}
         <div className="flex justify-between items-center mb-6">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -204,7 +210,6 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
           </motion.button>
         </div>
 
-        {/* Calendar Grid */}
         <div 
           className="grid grid-cols-7 gap-1 sm:gap-2"
           onTouchStart={handleTouchStart}
@@ -299,7 +304,6 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
           })}
         </div>
 
-        {/* Legend */}
         <div className="mt-6 flex flex-wrap gap-4 justify-center text-xs">
           <div className="flex items-center gap-2">
             <div className={`w-4 h-4 ${config.lightBg} border-2 ${config.border} rounded`}></div>
@@ -320,7 +324,6 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
         </div>
       </div>
 
-      {/* BIG Festival Modal */}
       <AnimatePresence>
         {showBigModal && (
           <>

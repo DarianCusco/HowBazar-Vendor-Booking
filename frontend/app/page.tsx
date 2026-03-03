@@ -9,32 +9,10 @@ import VendorFlow from './components/VendorFlow';
 import FoodTruckFlow from './components/FoodTruckFlow';
 
 //images
-import DSC_0429 from '@/app/assets/DSC_0429.jpg';
-import DSC_0522 from '@/app/assets/DSC_0522.jpg';
-import DSC_0549 from '@/app/assets/DSC_0549.jpg';
 import DSC_0550 from '@/app/assets/DSC_0550.jpg';
-import DSC_0551 from '@/app/assets/DSC_0551.jpg';
-import DSC_0565 from '@/app/assets/DSC_0565.jpg';
-import DSC_0567 from '@/app/assets/DSC_0567.jpg';
-import DSC_0609 from '@/app/assets/DSC_0609.jpg';
-import DSC_0668 from '@/app/assets/DSC_0668.jpg';
-import DSC_0670 from '@/app/assets/DSC_0670.jpg';
-import DSC_0835 from '@/app/assets/DSC_0835.jpg';
-import DSC_0910 from '@/app/assets/DSC_0910.jpg';
 
 const SPRING_IMAGES = [
-  DSC_0429,
-  DSC_0522,
-  DSC_0549,
-  DSC_0550,
-  DSC_0551,
-  DSC_0565,
-  DSC_0567,
-  DSC_0609,
-  DSC_0668,
-  DSC_0670,
-  DSC_0835,
-  DSC_0910,
+  DSC_0550
 ];
 
 export default function SpringMarketLanding() {
@@ -122,7 +100,7 @@ export default function SpringMarketLanding() {
         {/* Single static image instead of rotating carousel */}
         <div className="absolute inset-0">
           <Image
-            src={DSC_0429} // Using the first image as static background
+            src={DSC_0550} // Using the first image as static background
             alt="Spring Market"
             fill
             className="object-cover"
@@ -130,7 +108,7 @@ export default function SpringMarketLanding() {
             quality={85}
             sizes="100vw"
             placeholder="blur"
-            blurDataURL={DSC_0429.blurDataURL}
+            blurDataURL={DSC_0550.blurDataURL}
           />
           
           {/* Soft gradient overlay for text readability */}

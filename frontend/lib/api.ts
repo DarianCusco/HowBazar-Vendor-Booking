@@ -31,7 +31,6 @@ export interface CalendarEvent {
   id: number;
   name: string;
   date: string;
-  // Make new fields optional for backward compatibility
   regular_spots_available?: number;
   food_spots_available?: number;
   regular_spots_total?: number;
