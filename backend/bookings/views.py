@@ -69,7 +69,7 @@ def create_booking_from_data(event, data, multi_date_group_id=None):
         'multi_date_group_id': multi_date_group_id,
     }
     
-    # Try to find or create a booth slot
+    # Try to find an available booth slot of the correct type
     booth_slot = BoothSlot.objects.filter(
         event=event,
         slot_type=vendor_type,
@@ -77,11 +77,23 @@ def create_booking_from_data(event, data, multi_date_group_id=None):
     ).first()
     
     if not booth_slot:
-        # Create a new booth slot
-        next_number = BoothSlot.objects.filter(
-            event=event, 
-            slot_type=vendor_type
-        ).count() + 1
+        # Find the next available spot number across ALL slots for this event
+        # (since spot_number must be unique per event, not per slot_type)
+        existing_slots = BoothSlot.objects.filter(event=event).order_by('-spot_number')
+        
+        if existing_slots.exists():
+            # Get the highest spot number and increment
+            last_spot = existing_slots.first().spot_number
+            try:
+                last_number = int(last_spot)
+                next_number = last_number + 1
+            except ValueError:
+                # Fallback if spot_number isn't a simple integer string
+                next_number = existing_slots.count() + 1
+        else:
+            next_number = 1
+        
+        # Create a new booth slot with the next available number
         booth_slot = BoothSlot.objects.create(
             event=event,
             spot_number=f"{next_number:03d}",

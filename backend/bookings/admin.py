@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.db.models import Count
+from django.db.models import Count, Q
 from .models import Event, BoothSlot, GeneralVendorBooking, FoodTruckBooking
 
 
@@ -7,33 +7,91 @@ from .models import Event, BoothSlot, GeneralVendorBooking, FoodTruckBooking
 class EventAdmin(admin.ModelAdmin):
     list_display = [
         'name', 'date', 'location', 
-        'regular_spots_available', 'regular_spots_total',
-        'food_spots_available', 'food_spots_total',
-        'total_bookings'
+        # Regular Vendor Columns
+        'regular_spots_total_display', 'regular_spots_available_display', 'regular_bookings_count',
+        # Food Truck Columns  
+        'food_spots_total_display', 'food_spots_available_display', 'food_bookings_count',
+        # Summary
+        'total_bookings_display'
     ]
     list_filter = ['date', 'location']
     search_fields = ['name', 'location']
     date_hierarchy = 'date'
+    
+    # Organize fieldsets with clear sections
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'date', 'location', 'description')
         }),
-        ('Regular Vendor Spots', {
+        ('Regular Vendor Spots (26 total)', {
             'fields': ('regular_spots_total', 'regular_spots_available', 'regular_price'),
-            'description': 'Regular vendors (artisans, makers, creators)'
+            'description': 'Regular vendors (artisans, makers, creators) - 26 spots per event'
         }),
-        ('Food Truck Spots', {
+        ('Food Truck Spots (2 total)', {
             'fields': ('food_spots_total', 'food_spots_available', 'food_price'),
-            'description': 'Food trucks and food vendors'
+            'description': 'Food trucks and food vendors - 2 spots per event'
         }),
     )
     readonly_fields = ['created_at', 'updated_at']
     
-    def total_bookings(self, obj):
-        regular_count = GeneralVendorBooking.objects.filter(event=obj).count()
-        food_count = FoodTruckBooking.objects.filter(event=obj).count()
-        return f"{regular_count + food_count} total"
-    total_bookings.short_description = 'Total Bookings'
+    def get_queryset(self, request):
+        """Optimize queryset with annotations for booking counts"""
+        queryset = super().get_queryset(request)
+        queryset = queryset.annotate(
+            regular_bookings=Count('generalvendorbookings', distinct=True),
+            food_bookings=Count('foodtruckbookings', distinct=True)
+        )
+        return queryset
+    
+    # Regular Vendor Column Methods
+    def regular_spots_total_display(self, obj):
+        return obj.regular_spots_total
+    regular_spots_total_display.short_description = 'Reg Total'
+    regular_spots_total_display.admin_order_field = 'regular_spots_total'
+    
+    def regular_spots_available_display(self, obj):
+        available = obj.regular_spots_available
+        total = obj.regular_spots_total
+        if available == 0:
+            return f"❌ 0/{total}"
+        elif available <= 3:
+            return f"⚠️ {available}/{total}"
+        else:
+            return f"✅ {available}/{total}"
+    regular_spots_available_display.short_description = 'Reg Available'
+    regular_spots_available_display.admin_order_field = 'regular_spots_available'
+    
+    def regular_bookings_count(self, obj):
+        return obj.regular_bookings
+    regular_bookings_count.short_description = 'Reg Booked'
+    
+    # Food Truck Column Methods
+    def food_spots_total_display(self, obj):
+        return obj.food_spots_total
+    food_spots_total_display.short_description = 'Food Total'
+    food_spots_total_display.admin_order_field = 'food_spots_total'
+    
+    def food_spots_available_display(self, obj):
+        available = obj.food_spots_available
+        total = obj.food_spots_total
+        if available == 0:
+            return f"❌ 0/{total}"
+        elif available == 1:
+            return f"⚠️ {available}/{total}"
+        else:
+            return f"✅ {available}/{total}"
+    food_spots_available_display.short_description = 'Food Available'
+    food_spots_available_display.admin_order_field = 'food_spots_available'
+    
+    def food_bookings_count(self, obj):
+        return obj.food_bookings
+    food_bookings_count.short_description = 'Food Booked'
+    
+    # Total Summary
+    def total_bookings_display(self, obj):
+        total = obj.regular_bookings + obj.food_bookings
+        return f"{total} total ({obj.regular_bookings}R + {obj.food_bookings}F)"
+    total_bookings_display.short_description = 'Total Bookings'
 
 
 @admin.register(BoothSlot)
@@ -42,6 +100,39 @@ class BoothSlotAdmin(admin.ModelAdmin):
     list_filter = ['is_available', 'slot_type', 'event']
     search_fields = ['spot_number', 'event__name']
     raw_id_fields = ['event']
+    
+    # Add custom action to create default slots for events
+    actions = ['create_default_slots']
+    
+    def create_default_slots(self, request, queryset):
+        """Create default 26 regular + 2 food slots for selected events"""
+        created_count = 0
+        for event in queryset:
+            # Create 26 regular slots
+            for i in range(1, 27):
+                slot, created = BoothSlot.objects.get_or_create(
+                    event=event,
+                    spot_number=f"{i:03d}",
+                    defaults={'slot_type': 'regular', 'is_available': True}
+                )
+                if created:
+                    created_count += 1
+            
+            # Create 2 food slots (27 and 28)
+            for i in range(27, 29):
+                slot, created = BoothSlot.objects.get_or_create(
+                    event=event,
+                    spot_number=f"{i:03d}",
+                    defaults={'slot_type': 'food', 'is_available': True}
+                )
+                if created:
+                    created_count += 1
+        
+        self.message_user(
+            request, 
+            f"Created {created_count} new booth slots (26 regular + 2 food per event)"
+        )
+    create_default_slots.short_description = "Create default 26 regular + 2 food slots"
 
 
 class BaseBookingAdmin(admin.ModelAdmin):
