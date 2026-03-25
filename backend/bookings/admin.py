@@ -35,14 +35,13 @@ class EventAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at']
     
     def get_queryset(self, request):
-        """Optimize queryset with annotations for booking counts"""
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(
-            regular_bookings=Count('generalvendorbookings', distinct=True),
-            food_bookings=Count('foodtruckbookings', distinct=True)
+            regular_bookings=Count('generalvendorbooking_bookings', distinct=True),
+            food_bookings=Count('foodtruckbooking_bookings', distinct=True)
         )
         return queryset
-    
+
     # Regular Vendor Column Methods
     def regular_spots_total_display(self, obj):
         return obj.regular_spots_total
