@@ -21,17 +21,17 @@ export const SPRING_MARKET_DATES = [
   { date: '2026-04-10', status: 'big_festival', notes: 'BIG Festival Weekend! 🎉' },
   { date: '2026-04-11', status: 'big_festival', notes: 'BIG Festival Weekend! 🎉' },
   { date: '2026-04-12', status: 'big_festival', notes: 'BIG Festival Weekend! 🎉' },
-  { date: '2026-04-17', status: 'tentative', notes: 'Tentative - Join waitlist' },
-  { date: '2026-04-18', status: 'tentative', notes: 'Tentative - Join waitlist' },
-  { date: '2026-04-19', status: 'tentative', notes: 'Tentative - Join waitlist' },
-  { date: '2026-04-24', status: 'tentative', notes: 'Tentative - Join waitlist' },
-  { date: '2026-04-25', status: 'tentative', notes: 'Tentative - Join waitlist' },
-  { date: '2026-04-26', status: 'tentative', notes: 'Tentative - Join waitlist' },
+  { date: '2026-04-17', status: 'SOLD OUT', notes: 'Tentative - Join waitlist' },
+  { date: '2026-04-18', status: 'SOLD OUT', notes: 'Tentative - Join waitlist' },
+  { date: '2026-04-19', status: 'SOLD OUT', notes: 'Tentative - Join waitlist' },
+  { date: '2026-04-24', status: 'available', notes: '' },
+  { date: '2026-04-25', status: 'available', notes: '' },
+  { date: '2026-04-26', status: 'available', notes: '' },
   
   // May 2026
-  { date: '2026-05-01', status: 'tentative', notes: 'Tentative - Join waitlist' },
-  { date: '2026-05-02', status: 'tentative', notes: 'Tentative - Join waitlist' },
-  { date: '2026-05-03', status: 'tentative', notes: 'Tentative - Join waitlist' },
+  { date: '2026-05-01', status: 'available', notes: '' },
+  { date: '2026-05-02', status: 'available', notes: '' },
+  { date: '2026-05-03', status: 'available', notes: '' },
 ];
 
 export const VENDOR_CONFIG = {

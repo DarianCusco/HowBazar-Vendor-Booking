@@ -18,14 +18,15 @@ interface SpringCalendarProps {
 }
 
 export default function SpringCalendar({ vendorType, onDatesSelected, selectedDates, refreshTrigger = 0 }: SpringCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(() => new Date(2026, 2, 1));
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(2026, 3, 1));
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [showBigModal, setShowBigModal] = useState(false);
-  const [selectedBigDate, setSelectedBigDate] = useState<string>('');
   
   const config = VENDOR_CONFIG[vendorType];
+
+  // Dates that are sold out (April 10, 11, 12, 2026)
+  const SOLD_OUT_DATES = ['2026-04-10', '2026-04-11', '2026-04-12'];
 
   useEffect(() => {
     loadEvents();
@@ -81,6 +82,12 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
     }
   };
 
+  const isDateSoldOut = (date: Date | null) => {
+    if (!date) return false;
+    const dateStr = date.toISOString().split('T')[0];
+    return SOLD_OUT_DATES.includes(dateStr);
+  };
+
   const handleDateClick = (date: Date | null) => {
     if (!date) return;
     const dateStr = date.toISOString().split('T')[0];
@@ -88,13 +95,17 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
     
     if (!marketInfo) return;
     
+    // Make big_festival dates unclickable
     if (marketInfo.status === 'big_festival') {
-      setSelectedBigDate(dateStr);
-      setShowBigModal(true);
       return;
     }
     
     if (marketInfo.status === 'tentative') {
+      return;
+    }
+    
+    // Check if date is sold out
+    if (isDateSoldOut(date)) {
       return;
     }
     
@@ -115,7 +126,7 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
       
       const year = newDate.getFullYear();
       const month = newDate.getMonth();
-      if (year === 2026 && month >= 2 && month <= 4) return newDate;
+      if (year === 2026 && month >= 3 && month <= 4) return newDate;
       return prev;
     });
   };
@@ -145,7 +156,7 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
               alt="BIG Festival" 
               width={24} 
               height={24} 
-              className="animate-pulse"
+              className="opacity-80"
             />
           </div>
         );
@@ -182,211 +193,157 @@ export default function SpringCalendar({ vendorType, onDatesSelected, selectedDa
   }
 
   return (
-    <>
-      <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl p-4 sm:p-6 border border-white/50">
-        <div className="flex justify-between items-center mb-6">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigateMonth('prev')}
-            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md disabled:opacity-50"
-            disabled={currentMonth.getMonth() === 2 && currentMonth.getFullYear() === 2026}
-          >
-            ←
-          </motion.button>
-          
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-          </h2>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigateMonth('next')}
-            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md disabled:opacity-50"
-            disabled={currentMonth.getMonth() === 4 && currentMonth.getFullYear() === 2026}
-          >
-            →
-          </motion.button>
-        </div>
-
-        <div 
-          className="grid grid-cols-7 gap-1 sm:gap-2"
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
+    <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-xl p-4 sm:p-6 border border-white/50">
+      <div className="flex justify-between items-center mb-6">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigateMonth('prev')}
+          className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md disabled:opacity-50"
+          disabled={currentMonth.getMonth() === 3 && currentMonth.getFullYear() === 2026}
         >
-          {dayNames.map(day => (
-            <div key={day} className="text-center font-semibold text-gray-700 text-xs sm:text-sm py-2">
-              {day}
-            </div>
-          ))}
-
-          {days.map((date, index) => {
-            const marketInfo = getMarketDateInfo(date);
-            const dateStr = date ? date.toISOString().split('T')[0] : '';
-            const isSelected = selectedDates.includes(dateStr);
-            const availableSlots = getAvailableSlots(date);
-            const event = getEventForDate(date);
-
-            let dayClass = "rounded-lg border-2 transition-all relative flex flex-col items-center p-1 sm:p-2 min-h-[70px] sm:min-h-[90px] ";
-            
-            if (!date || !marketInfo) {
-              dayClass += "border-gray-200 bg-gray-100 text-gray-400";
-            } else if (marketInfo.status === 'tentative') {
-              dayClass += "border-yellow-300 bg-yellow-50/80 cursor-default";
-            } else if (marketInfo.status === 'big_festival') {
-              dayClass += "border-purple-300 bg-purple-50/80 cursor-pointer hover:bg-purple-100/80 transition-all";
-            } else if (availableSlots > 0) {
-              dayClass += `${config.border} ${config.lightBg} cursor-pointer hover:shadow-lg transform hover:scale-105`;
-            } else {
-              dayClass += "border-gray-300 bg-gray-100 opacity-60";
-            }
-
-            if (isSelected) {
-              dayClass += ` ring-4 ring-${config.color}-500 ring-offset-2 scale-105 z-10`;
-            }
-
-            return (
-              <motion.div
-                key={index}
-                whileHover={date && marketInfo && marketInfo.status !== 'tentative' ? { scale: 1.05 } : {}}
-                whileTap={date && marketInfo && marketInfo.status !== 'tentative' ? { scale: 0.95 } : {}}
-                onClick={() => handleDateClick(date)}
-                className={dayClass}
-              >
-                {date && marketInfo && (
-                  <>
-                    {getStatusBadge(marketInfo.status, marketInfo.notes)}
-                    
-                    {isSelected && (
-                      <div className={`absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r ${config.gradient} rounded-full flex items-center justify-center shadow-lg z-20`}>
-                        <span className="text-black text-xs font-bold">
-                          {selectedDates.findIndex(d => d === dateStr) + 1}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="text-sm sm:text-base font-bold text-gray-800 mt-1">
-                      {date.getDate()}
-                    </div>
-
-                    {marketInfo.status === 'available' && (
-                      <div className={`text-[10px] sm:text-xs font-semibold mt-1 ${
-                        availableSlots > 0 ? `text-${config.color}-700` : 'text-red-600'
-                      }`}>
-                        {availableSlots > 0 ? (
-                          <>
-                            <span className="sm:hidden">{availableSlots}</span>
-                            <span className="hidden sm:inline text-gray-600">{availableSlots} {vendorType === 'regular' ? 'vendor' : 'food'} spots</span>
-                          </>
-                        ) : (
-                          <span className="text-red-600 font-bold">SOLD</span>
-                        )}
-                      </div>
-                    )}
-
-                    {marketInfo.status === 'big_festival' && (
-                      <div className="text-[10px] sm:text-xs font-bold text-purple-700 mt-1 text-center">
-                        <span className="hidden sm:inline">Big: Culture & Arts Festival</span>
-                        <span className="sm:hidden">🎪</span>
-                      </div>
-                    )}
-
-                    {marketInfo.status === 'tentative' && (
-                      <div className="text-[10px] sm:text-xs font-medium text-yellow-700 mt-1 text-center">
-                        <span>Tentative</span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-4 justify-center text-xs">
-          <div className="flex items-center gap-2">
-            <div className={`w-4 h-4 ${config.lightBg} border-2 ${config.border} rounded`}></div>
-            <span className="text-gray-700 font-medium">Available</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-purple-100 border-2 border-purple-300 rounded"></div>
-            <span className="text-gray-700 font-medium">Big: Culture & Arts Festival</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-yellow-100 border-2 border-yellow-300 rounded"></div>
-            <span className="text-gray-700 font-medium">Tentative</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gray-200 border-2 border-gray-400 rounded"></div>
-            <span className="text-gray-700 font-medium">Sold Out</span>
-          </div>
-        </div>
+          ←
+        </motion.button>
+        
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+        </h2>
+        
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigateMonth('next')}
+          className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl shadow-md disabled:opacity-50"
+          disabled={currentMonth.getMonth() === 4 && currentMonth.getFullYear() === 2026}
+        >
+          →
+        </motion.button>
       </div>
 
-      <AnimatePresence>
-        {showBigModal && (
-          <>
+      <div 
+        className="grid grid-cols-7 gap-1 sm:gap-2"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {dayNames.map(day => (
+          <div key={day} className="text-center font-semibold text-gray-700 text-xs sm:text-sm py-2">
+            {day}
+          </div>
+        ))}
+
+        {days.map((date, index) => {
+          const marketInfo = getMarketDateInfo(date);
+          const dateStr = date ? date.toISOString().split('T')[0] : '';
+          const isSelected = selectedDates.includes(dateStr);
+          const availableSlots = getAvailableSlots(date);
+          const event = getEventForDate(date);
+          const isSoldOut = isDateSoldOut(date);
+          const isBigFestival = marketInfo?.status === 'big_festival';
+
+          let dayClass = "rounded-lg border-2 transition-all relative flex flex-col items-center p-1 sm:p-2 min-h-[70px] sm:min-h-[90px] ";
+          
+          if (!date || !marketInfo) {
+            dayClass += "border-gray-200 bg-gray-100 text-gray-400";
+          } else if (marketInfo.status === 'tentative') {
+            dayClass += "border-yellow-300 bg-yellow-50/80 cursor-default";
+          } else if (isBigFestival) {
+            dayClass += "border-purple-300 bg-purple-50/80 cursor-not-allowed opacity-75";
+          } else if (isSoldOut) {
+            dayClass += "border-red-300 bg-red-50/80 opacity-60 cursor-not-allowed";
+          } else if (availableSlots > 0) {
+            dayClass += `${config.border} ${config.lightBg} cursor-pointer hover:shadow-lg transform hover:scale-105`;
+          } else {
+            dayClass += "border-gray-300 bg-gray-100 opacity-60";
+          }
+
+          if (isSelected) {
+            dayClass += ` ring-4 ring-${config.color}-500 ring-offset-2 scale-105 z-10`;
+          }
+
+          return (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowBigModal(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-            />
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 20 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+              key={index}
+              whileHover={date && marketInfo && marketInfo.status !== 'tentative' && !isSoldOut && !isBigFestival ? { scale: 1.05 } : {}}
+              whileTap={date && marketInfo && marketInfo.status !== 'tentative' && !isSoldOut && !isBigFestival ? { scale: 0.95 } : {}}
+              onClick={() => handleDateClick(date)}
+              className={dayClass}
             >
-              <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden pointer-events-auto">
-                <div className="relative h-38 w-full overflow-hidden">
-                  <img 
-                    src={bigTwo.src} 
-                    alt="BIG Festival" 
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                </div>
-                
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-800 mb-1">
-                    Big: Culture & Arts Festival Weeknend! 🎉
-                  </h3>
+              {date && marketInfo && (
+                <>
+                  {getStatusBadge(marketInfo.status, marketInfo.notes)}
                   
-                  <p className="text-gray-600 mb-6">
-                    {selectedBigDate && formatDisplayDate(selectedBigDate)}
-                  </p>
+                  {/* Sold Out Ribbon */}
+                  {isSoldOut && (
+                    <div className="absolute -top-1 -right-1 z-20">
+                      <div className="relative">
+                        <div className="absolute top-0 right-0 w-0 h-0 border-t-[35px] border-r-[35px] border-t-red-500 border-r-red-500"></div>
+                        <div className="absolute top-1 right-1 transform rotate-45 text-white font-bold text-[8px] sm:text-[10px] whitespace-nowrap">
+                          SOLD
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
-                  <p className="text-gray-700 mb-6 text-center">
-                    <a 
-                      href="https://big.diondia.com/events/diondia/2050356" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-purple-600 font-semibold hover:text-purple-800 hover:underline transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Get your tickets now!
-                    </a>
-                  </p>
-                  
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setShowBigModal(false)}
-                      className="px-6 py-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
-                    >
-                      Close
-                    </button>
+                  {isSelected && (
+                    <div className={`absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r ${config.gradient} rounded-full flex items-center justify-center shadow-lg z-20`}>
+                      <span className="text-black text-xs font-bold">
+                        {selectedDates.findIndex(d => d === dateStr) + 1}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="text-sm sm:text-base font-bold text-gray-800 mt-1">
+                    {date.getDate()}
                   </div>
-                </div>
-              </div>
+
+                  {marketInfo.status === 'available' && !isSoldOut && (
+                    <div className={`text-[10px] sm:text-xs font-semibold mt-1 ${
+                      availableSlots > 0 ? `text-${config.color}-700` : 'text-red-600'
+                    }`}>
+                      {availableSlots > 0 ? (
+                        <>
+                          <span className="sm:hidden">{availableSlots}</span>
+                          <span className="hidden sm:inline text-gray-600">{availableSlots} {vendorType === 'regular' ? 'vendor' : 'food'} spots</span>
+                        </>
+                      ) : (
+                        <span className="text-red-600 font-bold">SOLD</span>
+                      )}
+                    </div>
+                  )}
+
+                  {isBigFestival && (
+                    <div className="text-[10px] sm:text-xs font-bold text-purple-700 mt-1 text-center">
+                      <span className="hidden sm:inline">Big: Culture & Arts Festival</span>
+                      <span className="sm:hidden">🎪</span>
+                    </div>
+                  )}
+
+                  {marketInfo.status === 'tentative' && (
+                    <div className="text-[10px] sm:text-xs font-medium text-yellow-700 mt-1 text-center">
+                      <span>Tentative</span>
+                    </div>
+                  )}
+                </>
+              )}
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-4 justify-center text-xs">
+        <div className="flex items-center gap-2">
+          <div className={`w-4 h-4 ${config.lightBg} border-2 ${config.border} rounded`}></div>
+          <span className="text-gray-700 font-medium">Available</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-purple-100 border-2 border-purple-300 rounded"></div>
+          <span className="text-gray-700 font-medium">Big: Culture & Arts Festival</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-red-100 border-2 border-red-400 rounded"></div>
+          <span className="text-gray-700 font-medium">Sold Out</span>
+        </div>
+      </div>
+    </div>
   );
 }
